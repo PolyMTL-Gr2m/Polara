@@ -28,7 +28,8 @@
 # Not intended to be run standalone
 #
 
-set GLOBAL_INCLUDE_DIRS "${DV_ROOT}/design/include ${DV_ROOT}/design/chipset/include ${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/include ${DV_ROOT}/design/chip/tile/ariane/common/local/util ${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/include"
+set GLOBAL_INCLUDE_DIRS "${DV_ROOT}/design/include ${DV_ROOT}/design/chipset/include ${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/include ${DV_ROOT}/design/chip/tile/ariane/common/local/util ${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/include ${DV_ROOT}/design/chip/tile/ara/hardware/include ${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/include ${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src ${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/include ${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/include"
+
 
 # RTL include files
 set GLOBAL_INCLUDE_FILES [list \
@@ -69,6 +70,8 @@ set CHIP_RTL_IMPL_FILES [list \
     "${DV_ROOT}/design/common/rtl/bram_1rw_wrapper.v" \
     "${DV_ROOT}/design/common/rtl/bram_1r1w_wrapper.v" \
     "${DV_ROOT}/design/common/rtl/synchronizer.v" \
+    "${DV_ROOT}/design/common/rtl/noc_simple_splitter.v" \
+    "${DV_ROOT}/design/common/rtl/noc_simple_merger.v" \
     "${DV_ROOT}/design/chip/rtl/OCI.v" \
     "${DV_ROOT}/design/chip/rtl/chip.v" \
     "${DV_ROOT}/design/chip/pll/rtl/pll_top.v" \
@@ -396,152 +399,303 @@ set CHIP_RTL_IMPL_FILES [list \
     "${DV_ROOT}/design/chip/tile/sparc/srams/rtl/sram_wrappers/sram_l1i_tag.v" \
     "${DV_ROOT}/design/chipset/rv64_platform/bootrom/baremetal/bootrom.sv"                    \
     "${DV_ROOT}/design/chipset/rv64_platform/bootrom/linux/bootrom_linux.sv"                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/cv64a6_imafdc_sv39_config_pkg.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/riscv_pkg.sv"                                 \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_pkg.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/ariane_pkg.sv"                                \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/tb/ariane_soc_pkg.sv"                                 \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/axi/src/axi_pkg.sv"                               \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/ariane_axi_pkg.sv"                            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/wt_cache_pkg.sv"                              \
-    "${DV_ROOT}/design/chip/tile/ariane/core/include/axi_intf.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_pkg.sv"                             \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/cv64a6_imafdc_sv39_openpiton_config_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/riscv_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/ariane_dm_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/ariane_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/acc_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/tb/ariane_soc_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/axi/src/axi_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/tb/ariane_axi_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/wt_cache_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/tb/axi_intf.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/include/cvxif_pkg.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/cf_math_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/cf_math_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/include/instr_tracer_pkg.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/cvxif_example/include/cvxif_instr_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/acc_dispatcher.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/rv_plic_reg_pkg.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/sram.sv"                                     \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/axi_master_connect.sv"                       \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/axi_master_connect_rev.sv"                   \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/axi_slave_connect.sv"                        \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/axi_slave_connect_rev.sv"                    \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/deprecated/rrarbiter.sv"         \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/deprecated/fifo_v1.sv"           \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/deprecated/fifo_v2.sv"           \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/fifo_v3.sv"                      \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/shift_reg.sv"                    \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/lfsr_8bit.sv"                    \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/lfsr.sv"                         \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/lzc.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/exp_backoff.sv"                  \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/rr_arb_tree.sv"                  \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/rstgen_bypass.sv"                \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/cdc_2phase.sv"                   \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/unread.sv"                       \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/popcount.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/axi_mem_if/src/axi2mem.sv"                                \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/src/tech_cells_generic/src/fpga/tc_clk_xilinx.sv"         \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/src/tech_cells_generic/src/fpga/tc_sram_xilinx.sv"        \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/src/tech_cells_generic/src/deprecated/cluster_clk_cells.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/src/tech_cells_generic/src/deprecated/pulp_clk_cells.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/tc_sram_xilinx_wrapper.sv"           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/axi_adapter.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/alu.sv"                                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu_wrap.sv"                                      \
-    "${DV_ROOT}/design/chip/tile/ariane/core/ariane.sv"                                        \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cva6.sv"                                        \
-    "${DV_ROOT}/design/chip/tile/ariane/core/branch_unit.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/compressed_decoder.sv"                            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/controller.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/csr_buffer.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/csr_regfile.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/decoder.sv"                                       \
-    "${DV_ROOT}/design/chip/tile/ariane/core/ex_stage.sv"                                      \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/btb.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/bht.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/ras.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/instr_scan.sv"                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/instr_queue.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/frontend.sv"                             \
-    "${DV_ROOT}/design/chip/tile/ariane/core/id_stage.sv"                                      \
-    "${DV_ROOT}/design/chip/tile/ariane/core/instr_realign.sv"                                 \
-    "${DV_ROOT}/design/chip/tile/ariane/core/issue_read_operands.sv"                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/issue_stage.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/load_unit.sv"                                     \
-    "${DV_ROOT}/design/chip/tile/ariane/core/load_store_unit.sv"                               \
-    "${DV_ROOT}/design/chip/tile/ariane/core/lsu_bypass.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/mmu.sv"                                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/mult.sv"                                          \
-    "${DV_ROOT}/design/chip/tile/ariane/core/multiplier.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/serdiv.sv"                                        \
-    "${DV_ROOT}/design/chip/tile/ariane/core/perf_counters.sv"                                 \
-    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/ptw.sv"                                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/ariane_regfile_ff.sv"                             \
-    "${DV_ROOT}/design/chip/tile/ariane/core/re_name.sv"                                       \
-    "${DV_ROOT}/design/chip/tile/ariane/core/scoreboard.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/store_buffer.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/amo_buffer.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/store_unit.sv"                                    \
-    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/tlb.sv"                                           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/commit_stage.sv"                                  \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_ctrl.sv"                \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_mem.sv"                 \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_missunit.sv"            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_wbuffer.sv"             \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/cva6_icache.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/cva6_icache_axi_wrapper.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_l15_adapter.sv"                \
-    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_cache_subsystem.sv"            \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/clint/clint.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/clint/axi_lite_interface.sv"                      \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/debug_rom/debug_rom.sv"                 \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_csrs.sv"                         \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_mem.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_top.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_cdc.sv"                         \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_jtag.sv"                        \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_sba.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_jtag_tap.sv"                    \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/riscv_peripherals.sv"                       \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/ariane_verilog_wrap.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/bootrom/baremetal/bootrom.sv"               \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/bootrom/linux/bootrom_linux.sv"             \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/rv_plic_target.sv"                    \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/rv_plic_gateway.sv"                   \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/plic_regmap.sv"                       \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/plic_top.sv"                          \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb_wrap.sv"                 \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb.sv"                      \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb_64_32.sv"                \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_w_buffer.sv"               \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_b_buffer.sv"               \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_slice_wrap.sv"             \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_slice.sv"                  \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_single_slice.sv"           \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_ar_buffer.sv"              \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_r_buffer.sv"               \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_aw_buffer.sv"              \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/src/apb_to_reg.sv"             \
-    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/src/reg_intf.sv"               \
+    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/sram.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/deprecated/rrarbiter.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/deprecated/fifo_v1.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/deprecated/fifo_v2.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/fifo_v3.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/shift_reg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/lfsr_8bit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/lfsr.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/lzc.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/exp_backoff.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/rr_arb_tree.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/rstgen_bypass.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/cdc_2phase.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/unread.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/popcount.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/axi_mem_if/src/axi2mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/tech_cells_generic/src/deprecated/cluster_clk_cells.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/tech_cells_generic/src/deprecated/pulp_clk_cells.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/tc_sram_fpga_wrapper.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/tech_cells_generic/src/fpga/tc_clk_xilinx.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/axi_adapter.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/alu.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/fpu_wrap.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/ariane.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cva6.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/branch_unit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/compressed_decoder.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/controller.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/csr_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/csr_regfile.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/decoder.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/ex_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/btb.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/bht.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/ras.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/instr_scan.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/instr_queue.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/frontend/frontend.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/id_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/instr_realign.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/issue_read_operands.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/issue_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/load_unit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/load_store_unit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/lsu_bypass.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/mmu.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/mult.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/multiplier.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/serdiv.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/perf_counters.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/ptw.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/ariane_regfile_ff.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/re_name.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/scoreboard.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/store_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/amo_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/store_unit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/mmu_sv39/tlb.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/commit_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_ctrl.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_missunit.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache_wbuffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_dcache.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/cva6_icache.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/cva6_icache_axi_wrapper.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_l15_adapter.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/core/cache_subsystem/wt_cache_subsystem.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/clint/clint.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/clint/axi_lite_interface.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/debug_rom/debug_rom.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_csrs.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_top.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_cdc.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_jtag.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dm_sba.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/riscv-dbg/src/dmi_jtag_tap.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/riscv_peripherals.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/openpiton/ariane_verilog_wrap.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/rv_plic_target.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/rv_plic_gateway.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/plic_regmap.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/rv_plic/rtl/plic_top.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb_wrap.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi2apb/src/axi2apb_64_32.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_w_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_b_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_slice_wrap.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_slice.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_single_slice.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_ar_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_r_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/fpga/src/axi_slice/src/axi_aw_buffer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/src/apb_to_reg.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/src/reg_intf.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/corev_apu/register_interface/src/reg_intf_pkg.sv"           \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv"      \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/control_mvp.sv"            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_mvp_wrapper.sv"   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_top_mvp.sv"       \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/iteration_div_sqrt_mvp.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv"      \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv"          \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv"         \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_cast_multi.sv"                            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_classifier.sv"                            \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_divsqrt_multi.sv"                         \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_fma_multi.sv"                             \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_fma.sv"                                   \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_noncomp.sv"                               \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_opgroup_block.sv"                         \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_opgroup_fmt_slice.sv"                     \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_opgroup_multifmt_slice.sv"                \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_rounding.sv"                              \
-    "${DV_ROOT}/design/chip/tile/ariane/core/fpu/src/fpnew_top.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/control_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_mvp_wrapper.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_top_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/iteration_div_sqrt_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_cast_multi.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_classifier.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_divsqrt_multi.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_fma_multi.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_fma.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_noncomp.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_block.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_fmt_slice.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_multifmt_slice.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_rounding.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/openhwgroup/cvfpu/src/fpnew_top.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/pmp/src/pmp.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/core/pmp/src/pmp_entry.sv" \                                \
+    "${DV_ROOT}/design/chip/tile/ariane/core/pmp/src/pmp_entry.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/instr_tracer.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/common/local/util/instr_tracer_if.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/cvxif_example/cvxif_example_coprocessor.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/cvxif_example/instr_decoder.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/counter.sv" \
-    "${DV_ROOT}/design/chip/tile/ariane/common/submodules/common_cells/src/delta_counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/src/delta_counter.sv" \
     "${DV_ROOT}/design/chip/tile/ariane/core/cvxif_fu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/include/rvv_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/include/ara_pkg.sv"    \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/sync_fifo.v " \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/noc_response_axilite.sv " \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/strb2mask.v" \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/axilite_noc_bridge.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/noc_response_axi.sv " \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/axi_noc_bridge.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/openpiton/ara_verilog_wrap.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/accel_dispatcher_ideal.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ara_dispatcher.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ara_sequencer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ara_soc.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ara.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ara_system.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/axi_inval_filter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/axi_to_mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/ctrl_registers.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/cva6_accel_first_pass_decoder.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/power_gating_generic.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/fixed_p_rounding.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/operand_queues_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/ara_popcnt.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/simd_alu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/valu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/vmfpu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/lane_sequencer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/operand_queue.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/simd_div.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/vector_fus_stage.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/lane.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/operand_requester.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/simd_mul.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/lane/vector_regfile.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/masku/masku.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/sldu/p2_stride_gen.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/sldu/sldu_op_dp.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/sldu/sldu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/vlsu/addrgen.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/vlsu/vldu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/vlsu/vlsu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/src/vlsu/vstu.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/ecc_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/edge_detect.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/fifo_v3.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/edge_propagator_tx.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_omega_net.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/delta_counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/cdc_2phase.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_xbar.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_register.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_to_mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/clock_divider_counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/fifo_v2.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/prioarbiter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/pulp_sync.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/generic_LFSR_8bit.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/rrarbiter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/clock_divider.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/generic_fifo.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/fifo_v1.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/find_first_one.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/pulp_sync_wedge.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/deprecated/generic_fifo_adv.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/isochronous_spill_register.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/sub_per_hash.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_fifo.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/fall_through_register.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/exp_backoff.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/rstgen.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/ecc_decode.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/lzc.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/cdc_fifo_gray.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/edge_propagator.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/id_queue.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/cb_filter_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/serial_deglitch.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_demux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_arbiter_flushable.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/onehot_to_bin.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/clk_div.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_fork.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_delay.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/rr_arb_tree.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_join.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_mux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/max_counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_arbiter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/addr_decode.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/edge_propagator_rx.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/binary_to_gray.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/spill_register.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/cb_filter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/lfsr.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_filter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/spill_register_flushable.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/cdc_fifo_2phase.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/ecc_encode.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/plru_tree.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/lfsr_8bit.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/shift_reg.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/lfsr_16bit.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_fork_dynamic.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/unread.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/popcount.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/sync.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/rstgen_bypass.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/sync_wedge.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/gray_to_binary.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/mv_filter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/counter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/common_cells/src/stream_intf.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_join.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_cdc.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_to_axi.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_cdc_src.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_modify_address.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_dw_downsizer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_xbar.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_xbar.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_err_slv.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_demux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_join.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_mux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_to_axi_lite.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_serializer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_dw_converter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_cut.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_dw_upsizer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_atop_filter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_burst_splitter.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_delayer.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_regs.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_to_apb.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_isolate.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_multicut.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_sim_mem.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_demux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_id_prepend.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_mailbox.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_cdc_dst.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/axi/src/axi_lite_mux.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_pkg.sv" \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_intf.sv"  \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_regs.sv"  \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_err_slv.sv"  \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_cdc.sv"  \
+    "${DV_ROOT}/design/chip/tile/ara/hardware/deps/apb/src/apb_demux.sv"  \
 ]
+
+
 
 set CHIP_INCLUDE_FILES [list \
 ]
@@ -655,6 +809,7 @@ set CHIPSET_RTL_IMPL_FILES [list \
     "${DV_ROOT}/design/chipset/io_ctrl/rtl/eth_top.v" \
     "${DV_ROOT}/design/chipset/mc/rtl/mc_top.v" \
     "${DV_ROOT}/design/chipset/mc/rtl/f1_mc_top.v" \
+    "${DV_ROOT}/design/chipset/mc/rtl/u280_polara_top.sv"  \
     "${DV_ROOT}/design/chipset/mc/rtl/noc_mig_bridge.v" \
     "${DV_ROOT}/design/chipset/mc/rtl/memory_zeroer.v" \
     "${DV_ROOT}/design/chipset/noc_axilite_bridge/rtl/noc_axilite_bridge.v" \
@@ -742,7 +897,7 @@ set CHIPSET_INCLUDE_FILES [list \
     "${DV_ROOT}/design/chipset/include/uart16550_define.vh" \
     "${DV_ROOT}/design/chipset/include/chipset_define.vh" \
     "${DV_ROOT}/design/chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_define.vh" \
-    "${DV_ROOT}/design/chip/tile/ariane/src/common_cells/include/common_cells/registers.svh"
+    "${DV_ROOT}/design/chip/tile/ariane/vendor/pulp-platform/common_cells/include/common_cells/registers.svh"
 ]
 
 set CHIPSET_IP_FILE_PREFIXES [list \

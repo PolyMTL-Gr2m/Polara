@@ -69,6 +69,12 @@ SECTIONS
     *(.tbss.end)
   }
 
+  /* timer definition section */
+  .timer : ALIGN(16) {
+    timer = .;
+    . = . + 0x8;
+  }
+
   /* End of uninitalized data segement */
   _end : {
     _end = .;
