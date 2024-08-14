@@ -64,6 +64,7 @@ def usage():
     print("                  genesys2", file=sys.stderr)
     print("                  nexysVideo", file=sys.stderr)
     print("                  f1", file=sys.stderr)
+    print("                  alveou280", file=sys.stderr)
     print("\n       -d, --design <design>", file=sys.stderr)
     print("              Name of design module to synthesize.  The default is 'system', which", file=sys.stderr)
     print("              synthesizes a full system with chip and chipset. See", file=sys.stderr)
@@ -490,11 +491,14 @@ def makeDefList(options):
     #defines.append(df)
 
     # disable CSM in this case
-    if options.core == 'ariane':
+    if (options.core == 'ariane'):
         defines.append("NO_RTL_CSM")
 
     if (options.board == "f1"):
         print_info("design option is ignored for f1")
+
+    if (options.board == "alveou280"):
+        defines.append("PITON_ALVEO")
 
     # --no-ddr option
     if (options.no_ddr == True) or (options.board == "piton_board"):
@@ -514,7 +518,7 @@ def makeDefList(options):
         defines.append("PITONSYS_MEM_ZEROER")    
 
     # do not use SD controller if BRAM is used for boot or a test or if board doesn't have sd
-    if (options.test_name != None) or (options.board in {"piton_board", 'xupp3r', "f1"}):
+    if (options.test_name != None) or (options.board in {"piton_board", "xupp3r", "f1", "alveou280"}):
         pass
     else:   # default option
         defines.append("PITON_FPGA_SD_BOOT")

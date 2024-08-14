@@ -352,6 +352,9 @@ module chip(
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
 
+   reg [`PITON_NUM_TILES-1:0] timer_irq_reg_i;
+   reg [`PITON_NUM_TILES*2-1:0] irq_reg_i; 
+
    // Tiles JTAG interface
    wire                                         jtag_tiles_ucb_val;
    wire [`UCB_BUS_WIDTH-1:0]                    jtag_tiles_ucb_data;
@@ -1084,11 +1087,11 @@ module chip(
         ,.unavailable_o       ( unavailable[_FLAT_ID_] )
     `endif // ifdef PITON_RV64_DEBUGUNIT
     `ifdef PITON_RV64_CLINT
-        ,.timer_irq_i         ( timer_irq[_FLAT_ID_]   )
+        ,.timer_irq_i         ( timer_irq_reg_i[_FLAT_ID_]   )
         ,.ipi_i               ( ipi[_FLAT_ID_]         )
     `endif // ifdef PITON_RV64_CLINT
     `ifdef PITON_RV64_PLIC
-        ,.irq_i               ( irq[_FLAT_ID_*2 +: 2]  )
+        ,.irq_i               ( irq_reg_i[_FLAT_ID_*2 +: 2]  )
     `endif // ifdef PITON_RV64_PLIC
     `endif // ifdef PITON_RV64_PLATFORM
         ,
@@ -1283,6 +1286,11 @@ pmesh_rvic pmesh_rvic (
     .td_o                       ( jtag_dataout_inter ),             
     .tdo_oe_o                   (                    ) // not used               
 );
+
+always @(posedge clk_muxed) begin
+   timer_irq_reg_i <= timer_irq;
+   irq_reg_i <= irq;
+end
 
 endmodule
 

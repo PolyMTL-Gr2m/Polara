@@ -321,8 +321,8 @@ def main():
         sysFreq = int(os.environ['CONFIG_SYS_FREQ'])
 
     timeStamp = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
-    gen_riscv_dts(devices, PITON_NUM_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
-    get_bootrom_info(devices, PITON_NUM_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+    gen_riscv_dts(devices, PITON_NUM_TILES, sysFreq, sysFreq/16384, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+    get_bootrom_info(devices, PITON_NUM_TILES, sysFreq, sysFreq/16384, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
 
 if __name__ == "__main__":
     main()

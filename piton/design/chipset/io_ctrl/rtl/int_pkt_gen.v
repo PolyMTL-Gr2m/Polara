@@ -178,7 +178,7 @@ always @(*) begin
     pkt_flit1[63:50] = chip_id;
     pkt_flit1[49:42] = x_pos;
     pkt_flit1[41:34] = y_pos;
-    pkt_flit1[33:30] = 4'b0; // processor
+    pkt_flit1[33:30] = 4'h5; // processor
     pkt_flit1[29:22] = 8'b1;
     if (NOC_ID == 1) begin
        pkt_flit1[21:14] = `MSG_TYPE_INTERRUPT_FWD; // interrupt forward

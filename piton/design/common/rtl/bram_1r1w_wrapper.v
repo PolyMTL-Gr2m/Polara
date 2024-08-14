@@ -115,6 +115,7 @@ always @ * begin
 
   // note: DOUT retains value if read enable is not asserted
   // which is why default value is not set for DOUT
+  DOUTA=0; // default value
   if (read_enable_in_reg) begin
     DOUTA = bram_data_read_out_reg; 
     if (rw_conflict_r) begin
