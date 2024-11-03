@@ -60,6 +60,24 @@ create_hw_axi_txn -force cfgrstoff [get_hw_axis hw_axi_1] -address 40000000 -dat
 run_hw_axi [get_hw_axi_txns cfgrstoff]
 
 # ####################################################################
+# Loopback flow. We are not using FLL. All synchronous
+# ####################################################################
+# 1. Reset the core
+reset_hw_axi [get_hw_axis hw_axi_1]
+# 2. rst_n on
+create_hw_axi_txn -force rston [get_hw_axis hw_axi_1] -address 40000000 -data {00000000} -len 1 -type write
+# Run it
+run_hw_axi [get_hw_axi_txns rston]
+# 3. chip_async_mux = 0, chip_clk_en = 1, chip_clk_mux_sel = 1, rst on
+create_hw_axi_txn -force cfgrst [get_hw_axis hw_axi_1] -address 40000000 -data {0000000C} -len 1 -type write
+# Run it
+run_hw_axi [get_hw_axi_txns cfgrst]
+# 4. cfg take off rst
+create_hw_axi_txn -force cfgrstoff [get_hw_axis hw_axi_1] -address 40000000 -data {0000000D} -len 1 -type write
+# Run it
+run_hw_axi [get_hw_axi_txns cfgrstoff]
+
+# ####################################################################
 # Loopback flow. FLL
 # ####################################################################
 # 1. Reset the core
