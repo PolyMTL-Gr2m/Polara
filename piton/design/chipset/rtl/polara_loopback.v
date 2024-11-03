@@ -142,13 +142,12 @@ module chipset_impl_polara_loopback(
    // Synchronize the reset signal and send to the rest of the blocks
    always @ (posedge chipset_clk, negedge chipset_rst_n)
      if(!chipset_rst_n) begin
-        Q1 <= 1’b0;
-        chipset_rstn_sync <= 1’b0;
+        Q1 <= 1'b0;
+        chipset_rstn_sync <= 1'b0;
      end else begin
-        Q1 <= 1’b1;
+        Q1 <= 1'b1;
         chipset_rstn_sync <= Q1;
      end
-   end
    
    // Instantiate debouncers for the 2 channel switches
    debouncer debouncer_sw_msb(
