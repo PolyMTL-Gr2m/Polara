@@ -1347,6 +1347,7 @@ chipset_impl_noc_power_test  chipset_impl (
      .sw_channel_msb(sw[1]),
      .sw_channel_lsb(sw[0]),
      .sw_march(sw[2]),
+     .sw_go(sw[3]),
 `endif // ifndef POLARA_LOOPBACK                                           
 `endif
 

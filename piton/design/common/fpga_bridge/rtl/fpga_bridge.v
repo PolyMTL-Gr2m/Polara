@@ -72,12 +72,15 @@ module fpga_bridge(
 
 parameter SEND_CREDIT_THRESHOLD = 9'd255;
 
+   wire                                 not_intf_out_clk = ~intf_out_clk;
+   
+   
 fpga_bridge_send_32 #(
     .FULL_THRESHOLD(SEND_CREDIT_THRESHOLD)
 )fpga_chip_out(
     .rst(~rst_n),
     .wr_clk(fpga_out_clk),
-    .rd_clk(intf_out_clk),
+    .rd_clk(not_intf_out_clk),
     .credit_wr_clk(intf_in_clk),
     .bin_data_1(fpga_intf_data_noc1),
     .bin_val_1(fpga_intf_val_noc1),
@@ -97,7 +100,7 @@ fpga_bridge_rcv_32 fpga_chip_in (
     .rst(~rst_n),
     .wr_clk(intf_in_clk),
     .rd_clk(fpga_in_clk),
-    .credit_rd_clk(intf_out_clk),
+    .credit_rd_clk(not_intf_out_clk),
     .bout_data_1(intf_fpga_data_noc1),
     .bout_val_1(intf_fpga_val_noc1),
     .bout_rdy_1(intf_fpga_rdy_noc1),
