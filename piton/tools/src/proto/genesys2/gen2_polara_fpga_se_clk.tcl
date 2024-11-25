@@ -67,7 +67,7 @@ common::send_gid_msg -ssname BD::TCL -id 2005 -severity "INFO" "Currently the va
 # MIG PRJ FILE TCL PROCs
 ##################################################################
 
-proc write_mig_file_gen2_polara_fpga_mig_7series_0_0 { str_mig_prj_filepath } {
+proc write_mig_file_gen2_polara_fpga_se_clk_mig_7series_0_0 { str_mig_prj_filepath } {
 
    file mkdir [ file dirname "$str_mig_prj_filepath" ]
    set mig_prj_file [open $str_mig_prj_filepath  w+]
@@ -233,7 +233,7 @@ proc write_mig_file_gen2_polara_fpga_mig_7series_0_0 { str_mig_prj_filepath } {
 
    close $mig_prj_file
 }
-# End of write_mig_file_gen2_polara_fpga_mig_7series_0_0()
+# End of write_mig_file_gen2_polara_fpga_se_clk_mig_7series_0_0()
 
 
 
@@ -340,9 +340,6 @@ proc create_root_design { parentCell } {
    CONFIG.C_TRI_DEFAULT {0x00000300} \
  ] $axi_gpio_0
 
-  # Create instance: ila_0, and set properties
-  set ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:ila:6.2 ila_0 ]
-
   # Create instance: jtag_axi_0, and set properties
   set jtag_axi_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:jtag_axi:1.2 jtag_axi_0 ]
   set_property -dict [ list \
@@ -357,7 +354,7 @@ proc create_root_design { parentCell } {
   set str_mig_file_name mig_b.prj
   set str_mig_file_path ${str_mig_folder}/${str_mig_file_name}
 
-  write_mig_file_gen2_polara_fpga_mig_7series_0_0 $str_mig_file_path
+  write_mig_file_gen2_polara_fpga_se_clk_mig_7series_0_0 $str_mig_file_path
 
   set_property -dict [ list \
    CONFIG.BOARD_MIG_PARAM {ddr3_sdram} \
@@ -379,7 +376,6 @@ proc create_root_design { parentCell } {
 
   # Create interface connections
   connect_bd_intf_net -intf_net S01_AXI_0_1 [get_bd_intf_ports ddr3_axi] [get_bd_intf_pins smartconnect_0/S01_AXI]
-connect_bd_intf_net -intf_net [get_bd_intf_nets S01_AXI_0_1] [get_bd_intf_ports ddr3_axi] [get_bd_intf_pins ila_0/SLOT_0_AXI]
   connect_bd_intf_net -intf_net axi_gpio_0_GPIO [get_bd_intf_ports polara_gen2chipset_bus_o] [get_bd_intf_pins axi_gpio_0/GPIO]
   connect_bd_intf_net -intf_net axi_gpio_0_GPIO2 [get_bd_intf_ports polara_gen2chipset_bus_i] [get_bd_intf_pins axi_gpio_0/GPIO2]
   connect_bd_intf_net -intf_net jtag_axi_0_M_AXI [get_bd_intf_pins jtag_axi_0/M_AXI] [get_bd_intf_pins smartconnect_0/S00_AXI]
@@ -389,7 +385,7 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets S01_AXI_0_1] [get_bd_intf_ports 
 
   # Create port connections
   connect_bd_net -net mig_7series_0_init_calib_complete [get_bd_ports mig_ddr3_init_calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
-  connect_bd_net -net mig_7series_0_ui_clk1 [get_bd_ports mig_ddr3_ui_clk] [get_bd_pins axi_gpio_0/s_axi_aclk] [get_bd_pins ila_0/clk] [get_bd_pins jtag_axi_0/aclk] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk]
+  connect_bd_net -net mig_7series_0_ui_clk1 [get_bd_ports mig_ddr3_ui_clk] [get_bd_pins axi_gpio_0/s_axi_aclk] [get_bd_pins jtag_axi_0/aclk] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk]
   connect_bd_net -net mig_7series_0_ui_clk_sync_rst [get_bd_ports mig_ddr3_ui_clk_sync_rst] [get_bd_pins mig_7series_0/ui_clk_sync_rst]
   connect_bd_net -net proc_sys_reset_0_interconnect_aresetn [get_bd_pins axi_gpio_0/s_axi_aresetn] [get_bd_pins jtag_axi_0/aresetn] [get_bd_pins proc_sys_reset_0/interconnect_aresetn] [get_bd_pins smartconnect_0/aresetn]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
