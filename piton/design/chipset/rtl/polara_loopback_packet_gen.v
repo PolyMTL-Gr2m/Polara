@@ -53,6 +53,7 @@ module polara_loopback_packet_gen(
    parameter STATE_WAIT          = 3'b010;
    parameter STATE_SEND_HEADER   = 3'b011;
    parameter STATE_SEND_DATA     = 3'b100;
+   parameter STATE_SPECIAL_WAIT  = 3'b101;
    
    
    reg [2:0]                            CurrentState, NextState;
@@ -85,9 +86,15 @@ module polara_loopback_packet_gen(
                     if (go)
                       begin
                          sanity_is_waiting <= 1'b0;
-                         CurrentState <= STATE_WAIT;
+                         CurrentState <= STATE_SPECIAL_WAIT;
                       end
                  end // case: STATE_RESET
+               STATE_SPECIAL_WAIT:
+                 begin
+                    sanity_is_waiting <= 1'b0;
+                    CurrentState <= STATE_SEND;
+                    out_data <= {14'b10000000000000, 8'd0, 8'd0, 4'b0010, 8'd0, 8'd18, 8'd0, 6'd0};
+                 end
                
                STATE_WAIT:
                  begin
@@ -146,7 +153,7 @@ module polara_loopback_packet_gen(
                     if (noc_rdy)
                       begin
                          sanity_is_waiting <= 1'b1;
-                         CurrentState = STATE_RESET;
+                         CurrentState = STATE_WAIT;
                          out_data <= {64{1'b0}};
                       end
                     else
