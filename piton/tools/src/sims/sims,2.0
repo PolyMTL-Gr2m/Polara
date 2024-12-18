@@ -140,10 +140,12 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'jobcommand_name' => "sim_command",
         'dryrun' => 0,
         'dv_root' => "",
+        'env_base' => "",
         'fast_boot' => 0,
         'finish_mask' => "",
         'flist' => [],
         'gcc_args' => [],
+        'flist_vhdl' => [],
         'group' => [],
         'group_name' => "",
         'gzip' => 1,
@@ -173,6 +175,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'parallel' => 0,
         'ost1' => 0,
         'ariane' => 0,
+        'decoupling' => 0,
         'pico' => 0,
         'pico_het' => 0,
         'post_process_cmd' => [],
@@ -201,6 +204,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'rv64_platform' => 0,
         'other_sim_build' => 0,
         'sim_build_args' => [],
+        'sim_build_args_vhdl' => [],
         'other_sim_build_cmd' => "",
         'other_sim_run' => 0,
         'sim_run_args' => [],
@@ -210,13 +214,20 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'sims_config' => "",
         'simslog' => 1,
         'simslog_name' => "sims.log",
+        'sjm' => 0,
+        'sjm_diag_name' => "",
+        'sjm_diag_path' => "",
+        'sjm_diag_root' => [],
         'sparcv9' => 0,
+        'stub_mask' => "",
         'sys' => "",
         'tg_seed' => -1,
         'tmp_dir' => ".",
         'toplevel' => [],
         'tarcopy' => 0,
         'use_config' => 1,
+        'vcd' => 0,
+        'vcdfile' => "",
         'vcs_build' => 0,
         'vcs_build_args' => [],
         'clean' => 0,
@@ -232,11 +243,13 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vcs_use_cm' => 0,
         'vcs_use_cli' => 0,
         'vcs_use_initreg' => 0,
+        'vcs_use_sdf' => 0,
         'vlt_build' => 0,
         'vlt_build_args' => [],
         'vlt_run' => 0,
         'version' => 0,
         'vfile' => [],
+        'vhdlfile' => [],
         'mem_init_py' => ""
        );
 
@@ -326,6 +339,7 @@ GetOptions (\%opt,
             'parallel!',
             'ost1!',
             'ariane!',
+            'decoupling!',
             'pico!',
             'pico_het!',
             'sparcv9!',
@@ -349,11 +363,15 @@ die ("DIE. -pico and -pico_het cannot both be set") if ($opt{pico} && $opt{pico_
 
 # Setting ost1 by default. This works better than default to 1
 # for heterogeneous-ISA stuff
+if (!$opt{pico} && !$opt{ariane}) {
+  $opt{ost1} = 1 ;
+}
 
 push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
+push (@{$opt{config_cpp_args}}, "-DFLIST_DCP")      if ($opt{decoupling}) ;
 
 ################################################################################
 # define $result_dir
@@ -1193,6 +1211,68 @@ sub gen_flist
   close (OFLIST) ;
 }
 
+sub gen_flist_vhdl
+{
+  open (OFLIST, ">flist_vhdl") or die ("DIE. can't open flist_vhdl file") ;
+
+  foreach my $flist_vhdl (@{$opt{flist_vhdl}}) {
+    $flist_vhdl =~ s/\$(\w+)/$ENV{$1}/g ;
+
+    open (IFLIST, "< $flist_vhdl") or die ("DIE. can't open flist_vhdl file $flist_vhdl") ;
+
+    print "$flist_vhdl\n";
+
+    while (<IFLIST>) {
+      my $line = $_ ;
+      my $base = dirname ($flist_vhdl) ;
+
+      $line =~ s/^\s*(.*?)\s*$/$1/ ;
+      $line .= "\n" ;
+
+      if (($line =~ /^\s*\/\//) or ($line =~ /^\s*$/)) {
+        next ;
+      }
+
+      $line =~ s/\$(\w+)/$ENV{$1}/g ;
+
+      if ($line =~ /^\+incdir\+\//)
+      { }
+      elsif ($line =~ /^\+incdir\+/) {
+        $line =~ s/^\+incdir\+(.*)/\+incdir\+$base\/$1/ ;
+      }
+      elsif ($line =~ /^\-v\s\//)
+      { }
+      elsif ($line =~ /^\-v/) {
+        $line =~ s/-v\s*(.*)/-v $base\/$1/ ;
+      }
+      elsif ($line =~ /^-y\s\//)
+      { }
+      elsif ($line =~ /^-y/) {
+        $line =~ s/-y\s*(.*)/-y $base\/$1/ ;
+      }
+      elsif (($line =~ /^\+define/) or
+             ($line =~ /^\+libext/) or
+             ($line =~ /^\+librescan/))
+      { }
+      elsif ($line !~ /^\//) {
+        $line = "$base/$line" ;
+      }
+
+      print OFLIST $line ;
+    }
+
+    close (IFLIST) ;
+  }
+
+  foreach my $file (@{$opt{vhdlfile}}) {
+    chomp $file ;
+    $file =~ s/\$(\w+)/$ENV{$1}/g ;
+    print OFLIST "$file\n" ;
+  }
+
+  close (OFLIST) ;
+}
+
 ################################################################################
 # if a signal is received do some cleanup - delete tmp directories
 ################################################################################
@@ -1261,8 +1341,10 @@ sub pre_build
 
   # Generate the flist file
   &gen_flist ();
+  &gen_flist_vhdl ();
 
   system("cp -f flist $cur_dir");
+  system("cp -f flist_vhdl $cur_dir");
 
   if($opt{rv64_platform}) {
     print "compiling rv64 DTS and bootroms...\n";
@@ -1294,12 +1376,17 @@ sub generic_sim_build
     my $cur_dir = $ENV{PWD};
     my $lib_path = "";
     my $build_cmd = "";
+    my $build_cmd_vhdl = "";
     my $ld_lib_path = "";
 
     # go to the model area
     chdir $model_path or die ("DIE. Can't cd to $model_path") ;
 
     if ($opt{vcs_build} or $opt{ncv_build}) {
+      # copy the sdf file
+      my $sdf_file = "$opt{env_base}/cmp_top.sdf" ;
+      `cp -f $sdf_file .` if (($opt{vcs_use_sdf}) and (-f $sdf_file)) ;
+
       chomp(my $vcsd = "vcsd".$proj_vars{vcsprefix});
       $vcsd =~ s/(vcsd)vcs(\d+)\.(\d+).*/$1$2$3/;
       my $vcsd_tab = "vcsd.tab";
@@ -1333,7 +1420,7 @@ sub generic_sim_build
       print "$prg: LM_LICENSE_FILE : none\n";
     }
 
-    push (@{$opt{sim_build_args}}, "-f flist") ;
+    push (@{$opt{sim_build_args}}, "-f flist") if (!($opt{vcs_build} && @{$opt{flist_vhdl}}));
 
     if ($opt{vcs_build}) {
       $lib_path = "-L$ENV{DV_ROOT}/tools/";
@@ -1344,6 +1431,7 @@ sub generic_sim_build
         push(@{$opt{vcs_build_args}}, "-top $top_n") ;
       }
 
+      push (@{$opt{vcs_build_args}}, "+compsdf") if ($opt{vcs_use_sdf}) ;
       push (@{$opt{vcs_build_args}}, "+initreg") if ($opt{vcs_use_initreg}) ;
       push (@{$opt{vcs_build_args}}, "-cm $opt{vcs_cm_args}") if ($opt{vcs_use_cm}) ;
       push (@{$opt{vcs_build_args}}, "-cm_cond $opt{vcs_cm_cond}") if ($opt{vcs_use_cm} and ($opt{vcs_cm_cond} ne "")) ;
@@ -1362,6 +1450,17 @@ sub generic_sim_build
       push (@{$opt{vcs_build_args}}, "+lint=all,noVCDE,noVNGS,noPCTIO-L,noPCTIO");
       push (@{$opt{vcs_build_args}}, "+warn=all");
       push (@{$opt{vcs_build_args}}, "-l compile.log") ;
+
+      if (!@{$opt{flist_vhdl}}) {
+        push (@{$opt{vcs_build_args}}, "+verilog2001ext+.v") ;
+      }
+      # some SystemVerilog-specific options
+      if ($opt{ariane}) {
+        if (!@{$opt{flist_vhdl}}) {
+          push (@{$opt{vcs_build_args}}, "+systemverilogext+.sv") ;
+        }
+        unshift (@{$opt{vcs_build_args}}, "-ntb_opts uvm-1.1 +vpi ") ;
+      }
 
       if ($opt{ibm}) {
           push (@{$opt{config_rtl}}, "IBM_SRAM_RF16X160_MODEL_CHECKER") ;
@@ -1427,6 +1526,10 @@ sub generic_sim_build
     }
 
     # copy vcs/icv/ncv/msm/vlt_build_args to generic sim_build_args
+    if ($opt{flist_vhdl}) {
+        push (@{$opt{sim_build_args_vhdl}}, "-f flist_vhdl");
+    }
+
     if ($opt{vcs_build}) {
       foreach my $x (@{$opt{vcs_build_args}})
       {
@@ -1449,6 +1552,7 @@ sub generic_sim_build
       foreach my $x (@{$opt{msm_build_args}})
       {
           push (@{$opt{sim_build_args}}, $x);
+          push (@{$opt{sim_build_args_vhdl}}, $x);
       }
     }
     if ($opt{riv_build}) {
@@ -1480,11 +1584,25 @@ sub generic_sim_build
     if ($opt{vcs_build}) {
       if ($ENV{VCS_BIN}) {
         $build_cmd = "$ENV{VCS_BIN} ";
+      } elsif (@{$opt{flist_vhdl}}) {
+        $build_cmd = " " ;
       } else {
         $build_cmd  = "vcs " ;
       }
       # lib_path needs to be before vcs_build_args
       $build_cmd .= $lib_path;
+
+      if (@{$opt{flist_vhdl}}) {
+        my $vhdl_build_cmd = "vhdlan -full64 -work work -f flist_vhdl -kdb";
+
+        print "$prg: $vhdl_build_cmd\n";
+
+        if (! $opt{dryrun}) {
+          system ($vhdl_build_cmd) ;
+          die ("DIE. failed building model") if ($?) ;
+        }
+
+      }
     }
     if ($opt{ncv_build}) {
       $build_cmd = "LD_LIBRARY_PATH=";
@@ -1506,6 +1624,13 @@ sub generic_sim_build
       # always_comb blocks that operate on arrays inside a generate statement.
       # [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported.
       $build_cmd .= " -suppress 2583 ";
+      if (@{$opt{flist_vhdl}}) {
+        $build_cmd_vhdl = "vcom" ;
+        if ($ENV{MODELSIM_VERSION}) {
+          $build_cmd_vhdl .= "$ENV{MODELSIM_VERSION}" ;
+        }
+        $build_cmd_vhdl .= " -93 -suppress vcom-1491 ";
+      }
     }
     if ($opt{riv_build}) {
       $build_cmd = "vlib work; vlog " ;
@@ -1543,12 +1668,21 @@ sub generic_sim_build
 
     # Transfer some build args to the flist
     open (IFLIST, "> flist.new") or die ("DIE. can't open flist.new") ;
+    open (IFLIST_VHDL, "> flist_vhdl.new") or die ("DIE. can't open flist_vhdl.new") ;
     foreach my $x (@{$opt{sim_build_args}}) {
       $x =~ s/^"(.*?)"$/$1/ ;
       if ($x =~ /\+define+|^-v |^-y |^-f (?!(flist|.*0in.*?\.arg))/) {
         print IFLIST "$x\n";
       } else {
         $build_cmd .= "$x " ;
+      }
+    }
+    foreach my $x (@{$opt{sim_build_args_vhdl}}) {
+      $x =~ s/^"(.*?)"$/$1/ ;
+      if ($x =~ /\+define+|^-v |^-y |^-f (?!(flist_vhdl|.*0in.*?\.arg))/) {
+        print IFLIST_VHDL "$x\n";
+      } else {
+        $build_cmd_vhdl .= "$x " ;
       }
     }
 
@@ -1561,6 +1695,37 @@ sub generic_sim_build
     close IFLIST;
     rename "flist", "flist.orig" or die ("DIE. can't rename flist");
     rename "flist.new", "flist" or die ("DIE. can't rename flist.new");
+    
+    open (FLIST_VHDL, "flist_vhdl") or die ("DIE. can't open flist_vhdl");
+    while (<FLIST_VHDL>) {
+        print IFLIST_VHDL "$_";
+    }
+    close FLIST_VHDL;
+    close IFLIST_VHDL;
+    rename "flist_vhdl", "flist_vhdl.orig" or die ("DIE. can't rename flist_vhdl");
+    rename "flist_vhdl.new", "flist_vhdl" or die ("DIE. can't rename flist_vhdl.new");
+    
+    if ($opt{vcs_build} && @{$opt{flist_vhdl}}) {
+      if ($opt{ariane}) {
+        my $vlog_build_cmd = "vlogan -full64 -nc -ntb_opts uvm-1.1 " ;
+        print "$prg: $vlog_build_cmd\n";
+    
+        if (! $opt{dryrun}) {
+          system ($vlog_build_cmd) ;
+          die ("DIE. failed building model") if ($?) ;
+        }
+      }
+      my $vlog_build_cmd = "vlogan -full64 -nc " . $build_cmd . " -work work -f flist +verilog2001ext+.v +systemverilogext+.sv";
+
+      print "$prg: $vlog_build_cmd\n";
+
+      if (! $opt{dryrun}) {
+        system ($vlog_build_cmd) ;
+        die ("DIE. failed building model") if ($?) ;
+      }
+
+      $build_cmd = "vcs " . $build_cmd ;
+    }
 
     print "$prg: $build_cmd\n";
 
@@ -1604,6 +1769,8 @@ sub generic_sim_run
     # copy the flist over
     system ("cp -f $model_path/flist .") ;
     die ("DIE. could not copy flist to $ENV{PWD}") if ($?) ;
+    system ("cp -f $model_path/flist_vhdl .") ;
+    die ("DIE. could not copy flist_vhdl to $ENV{PWD}") if ($?) ;
 
     # verify that a model was compiled
     die ("DIE. simv not found in $model_path") if ($opt{vcs_run} and ! -e "$model_path/simv") ;
@@ -1658,8 +1825,31 @@ sub generic_sim_run
       $ncvcommand = "\"run\"";
     }
 
+    if ($opt{vcd}) {
+      my $vcdfile = "";
+      if ($opt{vcdfile} eq "") {
+        $vcdfile = "$opt{tmp_dir}/sim.vcd.$$" ;
+      } elsif ( $opt{vcdfile} =~ /^\// ) {  ## full path name specified -- use file name as is
+        $vcdfile = $opt{vcdfile} ;
+      } else { ## relative path specified -- use name under tmp dir
+        $vcdfile = "$opt{tmp_dir}/$opt{vcdfile}.$$" ;
+      }
+
+      if ($opt{ncv_run}) {
+        $ncvcommand = "\"database -open \"myvcd\" -vcd -into \"$vcdfile\"; ";
+        $ncvcommand .= "probe -create -vcd -database myvcd cmp_top -all -depth all; ";
+        $ncvcommand .= "run\""
+      } else {
+        push (@{$opt{sim_run_args}}, "+vcd") ;
+        push (@{$opt{sim_run_args}}, "-vcd $vcdfile") ;
+      }
+    } else {
+      push (@{$opt{sim_run_args}}, "+vcs+fsdbdumpvars") ;
+    }
+
     # convert -args to +args
     push (@{$opt{sim_run_args}}, "+finish_mask=$opt{finish_mask}") if ($opt{finish_mask} ne "") ;
+    push (@{$opt{sim_run_args}}, "+stub_mask=$opt{stub_mask}") if ($opt{stub_mask} ne "") ;
     push (@{$opt{sim_run_args}}, "+TIMEOUT=$opt{rtl_timeout}") if ($opt{rtl_timeout}) ;
     push (@{$opt{sim_run_args}}, "+max_cycle=$opt{max_cycle}") if ($opt{max_cycle}) ;
 
@@ -1880,6 +2070,13 @@ if ($opt{riv_run}) {
       print PERFLOG "$prg: sim_start $main::sim_start" ;
       print PERFLOG "$prg: sim_stop $main::sim_stop" ;
       close (PERFLOG) ;
+    }
+
+    # copy over vcd dump
+
+    if (-f "$opt{tmp_dir}/$opt{vcdfile}") {
+      `mv $opt{tmp_dir}/$opt{vcdfile} sim.vcd`;
+      die ("DIE. unable to move sim.vcd over\n") if ($?) ;
     }
 }
 
@@ -2255,7 +2452,7 @@ sub assemble_diag
       # RISCV flow for RV64
       if (!$opt{rv64_target_triple}) {
         if ($opt{ariane}) {
-          $ENV{RV64_TARGET_TRIPLE} = "riscv64-unknown-elf-gcc" ;
+          $ENV{RV64_TARGET_TRIPLE} = "riscv64-unknown-elf" ;
         }
       } else {
         $ENV{RV64_TARGET_TRIPLE} = $opt{rv64_target_triple} ;
@@ -2278,6 +2475,7 @@ sub assemble_diag
       if (!$opt{precompiled}) {
         print "$prg: assembling 64bit riscv diag (RV64IMAC)\n" ;
         my $defs = "-DPITON_NUMTILES=$ENV{PITON_NUM_TILES} ";
+        $defs .= " -DDECADES_DECOUPLING=$ENV{DECADES_DECOUPLING} ";
         if ($opt{uart_dmw}) {
           $defs .= " -DPITONSTREAM ";
         }
@@ -2496,9 +2694,11 @@ sub parse_args
             'jobcommand_name=s',
             'dryrun!',
             'dv_root=s',
+            'env_base=s',
             'fast_boot!',
             'finish_mask=s',
             'flist=s@',
+            'flist_vhdl=s@',
             'group=s@',
             'group_name=s',
             'gzip!',
@@ -2552,6 +2752,7 @@ sub parse_args
             'rv64_platform!',
             'other_sim_build!',
             'sim_build_args=s@',
+            'sim_build_args_vhdl=s@',
             'other_sim_build_cmd=s',
             'other_sim_run!',
             'sim_run_args=s@',
@@ -2561,13 +2762,20 @@ sub parse_args
             'sims_config=s',
             'simslog!',
             'simslog_name=s',
+            'sjm!',
+            'sjm_diag_name=s',
+            'sjm_diag_path=s',
+            'sjm_diag_root=s@',
             'sparcv9!',
+            'stub_mask=s',
             'sys=s',
             'tg_seed=i',
             'tmp_dir=s',
             'toplevel=s@',
             'tarcopy!',
             'use_config!',
+            'vcd!',
+            'vcdfile=s',
             'vcs_build!',
             'vcs_build_args=s@',
             'clean!',
@@ -2583,8 +2791,10 @@ sub parse_args
             'vcs_use_cli!',
             'vcs_use_cm!',
             'vcs_use_initreg!',
+            'vcs_use_sdf!',
             'verbose!',
             'vfile=s@',
+            'vhdlfile=s@',
             'vlt_build!',
             'vlt_build_args=s@',
             'vlt_run!',
@@ -2651,7 +2861,6 @@ sub parse_args
   $ENV{PROTOSYN_RUNTIME_DESIGN_PATH} = $ENV{DV_ROOT} . "/verif/env/manycore";
   $ENV{PROTOSYN_RUNTIME_BOARD} = "";
 
-
   # these arguments may not have any options associated with them
   foreach my $x (@ARGV) {
     if ($x =~ /\.s/)        { $opt{asm_diag_name}   = $x ; }
@@ -2671,6 +2880,10 @@ sub parse_args
     }
     print "$prg: looking for precompiled RISCV binary $opt{asm_diag_name}\n";
   }
+
+
+  # expand environment variables
+  $opt{env_base} =~ s/\$(\w+)/$ENV{$1}/g ;
 
   # if -nobuild specified disable all build options
   if ($opt{build} == 0) {
@@ -2722,7 +2935,13 @@ sub parse_args
   $ENV{PITON_OST1}     = $opt{ost1};
   $ENV{PITON_PICO}     = $opt{pico};
   $ENV{PITON_PICO_HET} = $opt{pico_het};
+  $ENV{DECADES_DECOUPLING} = $opt{decoupling};
   $ENV{PITON_ARIANE}   = $opt{ariane};
+
+  push (@{$opt{config_rtl}}, "NO_RTL_CSM")     if ($opt{decoupling});
+  push (@{$opt{config_rtl}}, "L2_SEND_NC_REQ")     if ($opt{decoupling});
+  push (@{$opt{config_rtl}}, "DECADES_DECOUPLING")  if ($opt{decoupling});
+
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
 
@@ -2752,7 +2971,14 @@ sub parse_args
 
   for (my $i=0; $i < $pton_num_tiles; $i++) {
     push (@{$opt{config_rtl}}, "RTL_TILE" . $i);
-    if ($opt{pico} || ($opt{pico_het} && ($i % 2 == 1))) {
+    if ($opt{decoupling}) {
+        if ($i >= $pton_num_tiles/2) {
+            #Add a Cohort Tile for the second half
+            push (@{$opt{config_rtl}}, "RTL_IS_TILE" . $i);
+        } else {
+            push (@{$opt{config_rtl}}, "RTL_ARIANE" . $i);
+        }
+    } elsif ($opt{pico} || ($opt{pico_het} && ($i % 2 == 1))) {
         push (@{$opt{config_rtl}}, "RTL_PICO" . $i);
     } elsif ($opt{ariane}) {
         push (@{$opt{config_rtl}}, "RTL_ARIANE" . $i);
@@ -2764,6 +2990,7 @@ sub parse_args
   $ENV{PITON_X_TILES}=$pton_x_tiles;
   $ENV{PITON_Y_TILES}=$pton_y_tiles;
   $ENV{PITON_NUM_TILES}=$pton_num_tiles;
+  $ENV{COHORT_TILES}=int($pton_num_tiles/2);
   if($opt{dynamic_csm}) {
     $ENV{PITON_DYNAMIC_CSM}=$opt{dynamic_csm};
     push (@{$opt{midas_args}}, "-DDYNAMIC_CSM=$opt{dynamic_csm}");
@@ -2999,6 +3226,10 @@ VERILOG COMPILATION RELATED
            this feature works with -tg_seed to set the seed of the random
            initialization. this defaults to off.
 
+    -vcs_use_sdf/-novcs_use_sdf
+           build vcs model (simv) with an sdf file.
+           defaults to off.
+
     -vcs_use_cli/-novcs_use_cli
            use the +cli -line options when building a vcs model (simv).
            defaults to off.
@@ -3009,8 +3240,17 @@ VERILOG COMPILATION RELATED
            each flist will be concatenated into the final verilog flist
            used to build the model.
 
+    -flist_vhdl=FLIST
+           full path to flist to be appended together to generate the
+           final vhdl flist. multiple such arguments may be used and
+           each flist will be concatenated into the final vhdl flist
+           used to build the model.
+
     -vfile=FILE
            verilog file to be included into the flist
+
+    -vhdlfile=FILE
+           vhdl file to be included into the flist
 
     -config_rtl=DEFINE
            each such parameter is place as a `define in config.v to
@@ -3041,8 +3281,23 @@ VERILOG COMPILATION RELATED
     -ariane
            this specifies that the ARIANE RV64GC core shall be used
            in this case, programs are compiled and assembled using the RISCV GCC toolchain.
+    -decoupling
+           this specifies that a decoupling unit (DCP) is instantiated together with an ARIANE core
+           in each tile. must use with the -ariane flag
 
 VERILOG RUNTIME RELATED
+
+    -vcd/-novcd
+           signals the bench to dump in VCD format
+
+    -vcdfile=filename
+           the name of the vcd dump file.  if the file name starts with
+           a "/", that is the file dumped to, otherwise, the actual file is
+           created under 'tmp_dir/vcdfile' and copied back to the current
+           directory when the simulation ends.  use "-vcdfile=`pwd`/filename"
+           to force the file to be written in the current directory directly
+           (not efficient since dumping is done over network instead of to
+           a local disk).
 
     -vcs_run/-novcs_run
            runs the vcs simulation (simv). defaults to off.
@@ -3201,6 +3456,11 @@ MISC
            Simulation will be terminated by good_trap, if thread 1, 2 and
            3 hits the good_trap.
 
+    -stub_mask=MASK
+           mask for vcs simulation termination. Simulation ends when the
+           stub driving the relevant bit in the mask is asserted. This
+           is a hexadecimal value similar to -finish_mask
+
     -rtl_timeout
            passes a +TIMEOUT to the simv run.
            sets the number of clock cycles after all threads have become
@@ -3252,6 +3512,11 @@ IT SYSTEM RELATED
 
     -sims_config=FILE
             full path to sims config file
+
+    -env_base=PATH
+            this specifies the root directory for the bench environment.
+            it is typically defined in the bench config file. It has no
+            default.
 
     -config_cpp_args=OPTION
             this allows the user to provide CPP arguments (defines/undefines)

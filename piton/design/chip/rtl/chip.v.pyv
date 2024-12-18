@@ -50,20 +50,22 @@ module chip(
    // reset is assumed to be asynchronous
    input                                        rst_n,
 `ifndef PITON_CHIP_FPGA
-   input                                        pll_rst_n,
+   input                                        fll_rst_n,
 
    // Chip-level clock enable
    input                                        clk_en,
 
-   // PLL settings
-   output                                       pll_lock,
-   input                                        pll_bypass,
-   input  [4:0]                                 pll_rangea,
+   // FLL settings
+   output                                       fll_lock,
+   output                                       fll_clkdiv,
+   input                                        fll_bypass,
+   input                                        fll_opmode,
+   input  [3:0]                                 fll_range,
+   input                                        fll_cfgreq,
 
-   // Clock mux select (bypass PLL or not)
-   // Double redundancy with pll_bypass
-   input  [1:0]                                 clk_mux_sel,
-   
+   // Clock mux select
+   input                                        clk_mux_sel,
+
    // JTAG
    input                                        jtag_clk,
    input                                        jtag_rst_l,
@@ -173,15 +175,18 @@ module chip(
    wire                                         impsel2;
 
 
-   wire                                         pll_rst_n;
+   wire                                         fll_rst_n;
 
    wire                                         clk_en;
 
-   wire                                         pll_lock;
-   wire                                         pll_bypass;
-   wire [4:0]                                   pll_rangea;
+   wire                                         fll_lock,
+   wire                                         fll_clkdiv,
+   wire                                         fll_bypass,
+   wire                                         fll_opmode,
+   wire [3:0]                                   fll_range,
+   wire                                         fll_cfgreq,
 
-   wire [1:0]                                   clk_mux_sel;
+   wire                                         clk_mux_sel;
 
    wire                                         jtag_clk;
    wire                                         jtag_rst_l;
@@ -223,12 +228,15 @@ module chip(
    wire                                         core_ref_clk_inter;
    wire                                         io_clk_inter;
    wire                                         rst_n_inter;
-   wire                                         pll_rst_n_inter;
+   wire                                         fll_rst_n_inter;
    wire                                         clk_en_inter;
-   wire                                         pll_lock_inter;
-   wire                                         pll_bypass_inter;
-   wire [4:0]                                   pll_rangea_inter;
-   wire [1:0]                                   clk_mux_sel_inter;
+   wire                                         fll_lock_inter;
+   wire                                         fll_clkdiv_inter;
+   wire                                         fll_bypass_inter;
+   wire                                         fll_opmode_inter;
+   wire [3:0]                                   fll_range_inter;
+   wire                                         fll_cfgreq_inter;
+   wire                                         clk_mux_sel_inter;
    wire                                         jtag_clk_inter;
    wire                                         jtag_rst_l_inter;
    wire                                         jtag_rst_l_inter_sync;
@@ -239,7 +247,7 @@ module chip(
    wire                                         oram_on_inter;
    wire                                         oram_traffic_gen_inter;
    wire                                         oram_dummy_gen_inter;
-   wire [31:0]                              intf_chip_data_inter;
+   wire [31:0]                                  intf_chip_data_inter;
    wire [1:0]                                   intf_chip_channel_inter;
    wire [2:0]                                   intf_chip_credit_back_inter;
    wire [31:0]                                  chip_intf_data_inter;
@@ -252,11 +260,9 @@ module chip(
    wire                                         io_clk_rst_n_inter_sync;
    reg                                          io_clk_rst_n_inter_sync_f;
 
-   // PLL signals
-   wire                                         core_ref_clk_inter_c;
-   wire                                         core_ref_clk_inter_t;
+   // FLL signals
    wire                                         clk_muxed;
-   wire                                         pll_clk;
+   wire                                         fll_clk;
 
    // Buffered chip bridge inputs
    reg  [31:0]                                  intf_chip_data_inter_buf_f /* synthesis iob = true */;
@@ -534,13 +540,7 @@ module chip(
    assign impsel1 = 1'b1;
    assign impsel2 = 1'b1;
 
-   assign pll_rst_n = 1'b1;
-
    assign clk_en = 1'b1;
-
-   assign pll_lock = 1'b1;
-   assign pll_bypass = 1'b1;
-   assign pll_rangea = 5'b0;
 
    assign clk_mux_sel = 2'b0;
 
@@ -757,6 +757,7 @@ module chip(
 `endif // endif POLARA_VC707_CHIP
 
    // Off-Chip Interface Block
+   // Removed, the top level I/Os are in the backend dir
 
    OCI oci_inst (
    // Outside
@@ -769,22 +770,25 @@ module chip(
    .rst_n                  (rst_n),
 `else // ifndef PITON_CHIP_FPGA
    .rst_n                       (rst_n & (~chipset_prsnt_n)),
-`endif // ifndef PITON_CHIP_FPGA
-   .pll_rst_n              (pll_rst_n),
-   .pll_rangea             (pll_rangea),
-   .clk_mux_sel               (clk_mux_sel),
+`endif
+   .fll_rst_n              (fll_rst_n),
+   .fll_lock               (fll_lock),
+   .fll_clkdiv             (fll_clkdiv),
+   .fll_bypass             (fll_bypass),
+   .fll_opmode             (fll_opmode),
+   .fll_range              (fll_range),
+   .fll_cfgreq             (fll_cfgreq),
+   .clk_mux_sel            (clk_mux_sel),
    .clk_en                 (clk_en),
-   .pll_bypass             (pll_bypass),
    .async_mux              (async_mux),
    .oram_on                (oram_on),
    .oram_traffic_gen       (oram_traffic_gen),
-   .oram_dummy_gen            (oram_dummy_gen),
-   .pll_lock               (pll_lock),
-   .jtag_clk               (jtag_clk),
-   .jtag_rst_l             (jtag_rst_l),
-   .jtag_modesel           (jtag_modesel),
-   .jtag_datain               (jtag_datain),
-   .jtag_dataout           (jtag_dataout),
+   .oram_dummy_gen         (oram_dummy_gen),
+   .tck                    (jtag_clk),
+   .trstn                  (jtag_rst_l),
+   .tms                    (jtag_modesel),
+   .tdi                    (jtag_datain),
+   .tdo                    (jtag_dataout),
 `ifndef PITON_NO_CHIP_BRIDGE
    .intf_chip_data            (intf_chip_data),
    .intf_chip_channel         (intf_chip_channel),
@@ -801,56 +805,51 @@ module chip(
    .chip_intf_credit_back       (),
 `endif // endif PITON_NO_CHIP_BRIDGE
    // Inside
-   .core_ref_clk_inter        (core_ref_clk_inter),
-   .io_clk_inter           (io_clk_inter),
-   .rst_n_inter               (rst_n_inter),
-   .pll_rst_n_inter           (pll_rst_n_inter),
-   .pll_rangea_inter       (pll_rangea_inter),
-   .clk_mux_sel_inter         (clk_mux_sel_inter),
-   .clk_en_inter           (clk_en_inter),
-   .pll_bypass_inter       (pll_bypass_inter),
-   .async_mux_inter           (async_mux_inter),
-   .oram_on_inter          (oram_on_inter),
-   .oram_traffic_gen_inter    (oram_traffic_gen_inter),
-   .oram_dummy_gen_inter      (oram_dummy_gen_inter),
-   .pll_lock_inter            (pll_lock_inter),
-   .jtag_clk_inter            (jtag_clk_inter),
-   .jtag_rst_l_inter       (jtag_rst_l_inter),
-   .jtag_modesel_inter        (jtag_modesel_inter),
-   .jtag_datain_inter         (jtag_datain_inter),
-   .jtag_dataout_inter        (jtag_dataout_inter),
-   .intf_chip_data_inter      (intf_chip_data_inter),
+   .core_ref_clk_inter           (core_ref_clk_inter),
+   .io_clk_inter                 (io_clk_inter),
+   .rst_n_inter                  (rst_n_inter),
+   .fll_rst_n_inter              (fll_rst_n_inter),
+   .fll_lock_inter               (fll_lock_inter),
+   .fll_clkdiv_inter             (fll_clkdiv_inter),
+   .fll_bypass_inter             (fll_bypass_inter),
+   .fll_opmode_inter             (fll_opmode_inter),
+   .fll_range_inter              (fll_range_inter),
+   .fll_cfgreq_inter             (fll_cfgreq_inter),
+   .clk_mux_sel_inter            (clk_mux_sel_inter),
+   .clk_en_inter                 (clk_en_inter),
+   .async_mux_inter              (async_mux_inter),
+   .oram_on_inter                (oram_on_inter),
+   .oram_traffic_gen_inter       (oram_traffic_gen_inter),
+   .oram_dummy_gen_inter         (oram_dummy_gen_inter),
+   .tck_inter                    (jtag_clk_inter),
+   .trstn_inter                  (jtag_rst_l_inter),
+   .tms_inter                    (jtag_modesel_inter),
+   .tdi_inter                    (jtag_datain_inter),
+   .tdo_inter                    (jtag_dataout_inter),
+   .intf_chip_data_inter         (intf_chip_data_inter),
    .intf_chip_channel_inter      (intf_chip_channel_inter),
    .intf_chip_credit_back_inter  (intf_chip_credit_back_inter),
-   .chip_intf_data_inter      (chip_intf_data_inter),
+   .chip_intf_data_inter         (chip_intf_data_inter),
    .chip_intf_channel_inter      (chip_intf_channel_inter),
    .chip_intf_credit_back_inter  (chip_intf_credit_back_inter) );
 
-   // PLL and clock mux.  See above for alternatives
-   clk_se_to_diff ref_clk_converter (
-       .clk_se  (core_ref_clk_inter),
-       .clk_p   (core_ref_clk_inter_t),
-       .clk_n   (core_ref_clk_inter_c)
+   fll_clk_mux clk_mux (
+      .clk1(fll_clk),
+      .clk2(core_ref_clk_inter),
+      .clksel(clk_mux_sel_inter),
+      .clk_muxed(clk_muxed)
    );
-   clk_mux clock_mux (
-       .clk0_p(core_ref_clk_inter_t),
-       .clk0_n(core_ref_clk_inter_c),
-       .clk1_p(1'b1),
-       .clk1_n(1'b0),
-       .clk2(pll_clk),
 
-       .sel(clk_mux_sel_inter),
-
-       .clk_muxed(clk_muxed)
-   );
-   pll_top pll_top (
-      .clk_locked(pll_lock_inter),
-      .clk_out(pll_clk),
-
-      .rangeA(pll_rangea_inter),
-      .bypass_en(pll_bypass_inter),
-      .ref_clk(core_ref_clk_inter),
-      .rst(~pll_rst_n_inter)
+   fll_top fll (
+      .fll_rst_n(fll_rst_n_inter),
+      .fll_ref_clk(core_ref_clk_inter),
+      .fll_bypass(fll_bypass_inter),
+      .fll_opmode(fll_opmode_inter),
+      .fll_cfgreq(fll_cfgreq_inter),
+      .fll_range(fll_range_inter),
+      .fll_clk(fll_clk),
+      .fll_clkdiv(fll_clkdiv_inter),
+      .fll_lock(fll_lock_inter)
    );
 
    // reset synchronizer, might need to be placed near the
@@ -1099,7 +1098,8 @@ module chip(
     tile0 (
         .clk                (clk_muxed),
         .rst_n              (rst_n_inter_sync),
-        .clk_en             (ctap_clk_en_inter[_FLAT_ID_] && clk_en_inter),
+        //.clk_en             (ctap_clk_en_inter[_FLAT_ID_] && clk_en_inter),
+        .clk_en             (1'b1),
         .default_chipid             (14'b0),    // the first chip
         .default_coreid_x           (COREIDX),
         .default_coreid_y           (COREIDY),
@@ -1120,11 +1120,11 @@ module chip(
     `endif // ifdef PITON_RV64_PLATFORM
         ,
         // ucb from tiles to jtag
-        .tile_jtag_ucb_val   ( tile0_jtag_ucb_val      ),
-        .tile_jtag_ucb_data  ( tile0_jtag_ucb_data     ),
+        .tile_jtag_ucb_val   (       ),
+        .tile_jtag_ucb_data  (      ),
         // ucb from jtag to tiles
-        .jtag_tiles_ucb_val  ( jtag_tiles_ucb_val      ),
-        .jtag_tiles_ucb_data ( jtag_tiles_ucb_data     ),
+        .jtag_tiles_ucb_val  (       ),
+        .jtag_tiles_ucb_data (      ),
     '''
 
     subtemplate = r'''
@@ -1304,8 +1304,8 @@ pmesh_rvic pmesh_rvic (
     .debug_req_o                ( debug_req          ), 
     .unavailable_i              ( unavailable        ),
     .tck_i                      ( jtag_clk_inter     ),             
-    .tms_i                      ( jtag_rst_l_inter   ),             
-    .trst_ni                    ( jtag_modesel_inter ),                
+    .tms_i                      ( jtag_modesel_inter   ),             
+    .trst_ni                    ( jtag_rst_l_inter_sync ),
     .td_i                       ( jtag_datain_inter  ),             
     .td_o                       ( jtag_dataout_inter ),             
     .tdo_oe_o                   (                    ) // not used               

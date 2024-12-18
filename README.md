@@ -78,11 +78,16 @@ To run RISC-V Vector regression tests (Testing single core single tile):
     
     sims -group='ara_tile1'
 
+For multi core regression test (default configuration 2x2 tiles):
+
+    sims -group="ara_tile2x2"
+
 To run in GUI mode:
 
     sims -sys=manycore -x_tiles=1 -y_tiles=1 -vcs_build -ariane -config_rtl=SYNTHESIS -vcs_build_args="-assert svaext +define+VLEN=4096 +define+NR_LANES=4 +define+ARIANE_ACCELERATOR_PORT=1" -vcs_build_args="-LDFLAGS -Wl,--no-as-needed -kdb" -debug_all
 
     sims  -sys=manycore -x_tiles=1 -y_tiles=1 -vcs_run -ariane hello_world_many.c -gui
+
 
 
 ![OpenPitonAriane Logo](/docs/openpiton_ariane_logo.png?raw=true)

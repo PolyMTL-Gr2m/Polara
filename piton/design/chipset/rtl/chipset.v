@@ -88,6 +88,11 @@
 
 module chipset(
 
+`ifdef POLARA_GATESIM
+    output wire                                 good_end,
+    output wire                                 bad_end,
+    input  wire                                 test_ena,
+`endif
 `ifdef F1_BOARD
     input sys_clk,
 `else
@@ -1336,13 +1341,17 @@ chipset_impl_noc_power_test  chipset_impl (
     .piton_ready_n      (piton_ready_n      ),
 `endif
     .test_start         (test_start         ),
-    
 `ifdef PITON_NOC_POWER_CHIPSET_TEST
     .noc_power_test_hop_count (noc_power_test_hop_count),
 `else
 `ifndef POLARA_LOOPBACK                                           
     .uart_rst_out_n     (uart_rst_out_n     ),
     .invalid_access_o   (invalid_access     ),
+ `ifdef POLARA_GATESIM
+    .good_end(good_end),
+    .bad_end(bad_end),
+    .test_ena(test_ena),
+ `endif
 `else // ifndef POLARA_LOOPBACK
      .sw_channel_msb(sw[1]),
      .sw_channel_lsb(sw[0]),

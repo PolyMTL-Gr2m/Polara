@@ -50,14 +50,18 @@ input reg                             core_ref_clk,
 
 input reg                             sys_rst_n,
 
-input reg                             pll_rst_n,
+input reg                             fll_rst_n,
 
 input reg                             clk_en,
 
-input reg                             pll_bypass,
-input reg [4:0]                       pll_rangea,
-output wire                            pll_lock,
-input reg [1:0]                       clk_mux_sel,
+output wire                           fll_lock,
+output wire                           fll_clkdiv,
+input reg                             fll_bypass,
+input reg                             fll_opmode,
+input reg  [3:0]                      fll_range,
+input reg                             fll_cfgreq,
+
+input reg                             clk_mux_sel,
 input reg                             async_mux,
 input                                 diag_done,
 input                                 ok_iob
@@ -71,17 +75,24 @@ input                                 ok_iob
 `ifndef VERILATOR
 reg                             core_ref_clk;
 reg                             sys_rst_n;
-reg                             pll_rst_n;
+reg                             fll_rst_n;
 reg                             clk_en;
-reg                             pll_bypass;
-reg [4:0]                       pll_rangea;
-wire                            pll_lock;
+wire                            fll_lock;
+wire                            fll_clkdiv;
+reg                             fll_bypass;
+reg                             fll_opmode;
+reg  [3:0]                      fll_range;
+reg                             fll_cfgreq;
 reg [1:0]                       clk_mux_sel;
 reg                             async_mux;
 // For simulation only, monitor stuff.  Only cross-module referenced
 // do not delete.
 reg                             diag_done;
 `endif // ifndef VERILATOR
+
+wire                            good_end;		
+wire                            bad_end;		
+reg                             test_ena;
 
 reg                             io_clk;
 reg                             jtag_clk;
@@ -115,14 +126,21 @@ reg                             fail_flag;
 
 `ifndef VERILATOR
 `ifndef USE_FAKE_PLL_AND_CLKMUX
-always #5000 core_ref_clk = ~core_ref_clk;                      // 100MHz
+   always #715 core_ref_clk = ~core_ref_clk;                     // 700 MHz
 `else
-always #500 core_ref_clk = ~core_ref_clk;                       // 1000MHz
+    `ifndef USE_FLL
+    //always #715 core_ref_clk = ~core_ref_clk;                     // 700 MHz
+    always #5000 core_ref_clk = ~core_ref_clk;                      // 100 MHz
+    `else
+    //always #24000 core_ref_clk = ~core_ref_clk;                   // 20.83 MHz
+    always #5000 core_ref_clk = ~core_ref_clk;                      // 100 MHz
+    `endif
 `endif
 `endif
 
 `ifndef SYNC_MUX
-always #1429 io_clk = ~io_clk;                                  // 350MHz
+ // always #5000 io_clk = ~io_clk;                                  // 100MHz
+always #50000 io_clk = ~io_clk;                                     // 10MHz
 `else
 always @ * io_clk = core_ref_clk;
 `endif
@@ -155,10 +173,22 @@ always #25000 spi_sys_clk = ~spi_sys_clk;                       // 20MHz
 `ifndef VERILATOR
 initial
 begin
+    `ifdef POLARA_GATESIM
+    `ifdef POST_PNR
+    `ifdef USE_SDF
+        // SDF annotations
+        // Change path of the target SDF file
+        $sdf_annotate("/users/fournier/main/corev_polara/be/gf22/tempus/lib/soc/soc.sdf.gz", cmp_top.system.chip);
+        
+    `endif
+    `endif
+    `endif
+
     // These are not referenced elsewhere in this module,
     // but are cross referenced from monitor.v.pyv.  Do not
     // delete
     fail_flag = 1'b0;
+    test_ena = 1'b1;
 
     // Clocks initial value
     core_ref_clk = 1'b0;
@@ -180,25 +210,25 @@ begin
     // Resets are held low at start of boot
     sys_rst_n = 1'b0;
     jtag_rst_l = 1'b0;
-    pll_rst_n = 1'b0;
+    fll_rst_n = 1'b0;
 
     // Mostly DC signals set at start of boot
     clk_en = 1'b0;
-    if ($test$plusargs("pll_en"))
-    begin
-        // PLL is disabled by default
-        pll_bypass = 1'b0; // trin: pll_bypass is a switch in the pll; not reliable
-        clk_mux_sel[1:0] = 2'b10; // selecting pll
-    end
-    else
-    begin
-        pll_bypass = 1'b1; // trin: pll_bypass is a switch in the pll; not reliable
-        clk_mux_sel[1:0] = 2'b00; // selecting ref clock
-    end
+    `ifdef USE_FLL
+        // FLL is disabled by default
+        fll_bypass = 1'b0; // trin: pll_bypass is a switch in the fll; not reliable
+        clk_mux_sel = 1'b0; // selecting fll    else
+    `else
+        fll_bypass = 1'b1; // trin: pll_bypass is a switch in the fll; not reliable
+        clk_mux_sel = 1'b1; // selecting ref clock
+    `endif
+    fll_bypass = 0;
+    fll_opmode = 1;
+    fll_cfgreq = 0;
+    fll_range = 4'h0;
+
     // rangeA = x10 ? 5'b1 : x5 ? 5'b11110 : x2 ? 5'b10100 : x1 ? 5'b10010 : x20 ? 5'b0 : 5'b1;
-    pll_rangea = 5'b00001; // 10x ref clock
-    // pll_rangea = 5'b11110; // 5x ref clock
-    // pll_rangea = 5'b00000; // 20x ref clock
+    fll_range = 4'b00001; // 10x ref clock
 
     // JTAG simulation currently not supported here
     jtag_modesel = 1'b1;
@@ -232,12 +262,20 @@ begin
     end
 
 
-    // Reset PLL for 100 cycles
+    // Reset FLL for 100 cycles
     repeat(100)@(posedge core_ref_clk);
-    pll_rst_n = 1'b1;
+    fll_rst_n = 1'b1;
 
-    // Wait for PLL lock
-    wait( pll_lock == 1'b1 );
+    fll_bypass = 0;
+    fll_opmode = 1;
+    fll_cfgreq = 0;
+    fll_range = 4'h5;
+    fll_cfgreq = 1;
+    repeat(100)@(posedge core_ref_clk);
+    fll_cfgreq = 0;
+
+    // Wait for FLL lock
+    wait( fll_lock == 1'b1 );
 
     // After 10 cycles turn on chip-level clock enable
     repeat(10)@(posedge `CHIP_INT_CLK);
@@ -255,8 +293,10 @@ begin
 
     diag_done = 1'b1;
 `ifndef PITONSYS_IOCTRL
-    // Signal fake IOB to send wake up packet to first tile
-    cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
+    `ifndef CIOP_REAL_IOB
+        // Signal fake IOB to send wake up packet to first tile
+        cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
+    `endif
 `endif // endif PITONSYS_IOCTRL
 end
 `endif
@@ -327,7 +367,7 @@ system system(
 
     // Piton chip specific
 `ifndef PITON_FPGA_SYNTH
-    .pll_rst_n(pll_rst_n),
+    .fll_rst_n(fll_rst_n),
 `endif // endif PITON_FPGA_SYNTH
 
 `ifndef PITON_FPGA_SYNTH
@@ -336,14 +376,17 @@ system system(
 `endif // endif PITON_FPGA_SYNTH
 
 `ifndef PITON_FPGA_SYNTH
-    // Chip PLL settings
-    .pll_bypass(pll_bypass),
-    .pll_rangea(pll_rangea),
-    .pll_lock(pll_lock),
+    // Chip FLL settings
+    .fll_clkdiv(fll_clkdiv),
+    .fll_bypass(fll_bypass),
+    .fll_opmode(fll_opmode),
+    .fll_range (fll_range ),
+    .fll_cfgreq(fll_cfgreq),
+    .fll_lock  (fll_lock),
 `endif // endif PITON_FPGA_SYNTH
 
 `ifndef PITON_FPGA_SYNTH
-    // Chip clock mux selection (bypass PLL or not)
+    // Chip clock mux selection (bypass FLL or not)
     .clk_mux_sel(clk_mux_sel),
 `endif // endif PITON_FPGA_SYNTH
 
@@ -410,7 +453,11 @@ system system(
 `else // ifndef PITON_NOC_POWER_CHIPSET_TEST
     .sw(),
 `endif // endif PITON_NOC_POWER_CHIPSET_TEST
-
+`ifdef DISABLE_ALL_MONITORS
+    .good_end(good_end),
+    .bad_end(bad_end),
+    .test_ena(test_ena),
+`endif
     // Do not provide any functionality
     .leds()
 );
@@ -565,7 +612,22 @@ system system(
         if (prev_tx_state != tx) begin
             $display("UART: TX changed to %d at", tx, $time);
         end*/
-
+    `ifdef DISABLE_ALL_MONITORS
+        always @(posedge chipset_clk) begin
+            if (test_ena && (good_end || bad_end)) begin
+                if (good_end && !bad_end) begin
+                    $display("%0d: Simulation -> PASS (HIT GOOD TRAP)", $time);
+                    $finish;
+                end else if (!good_end && bad_end) begin
+                    $display("%0d: Simulation -> FAIL (HIT BAD TRAP)", $time);
+                    $finish;
+                end else begin
+                    $display("%0d: Simulation -> FAIL (GOOD & BAD TRAP ASSERTED)", $time);
+                    $finish;
+                end
+            end
+        end
+    `endif
 endmodule // cmp_top
 
 `endif

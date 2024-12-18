@@ -27,14 +27,17 @@ RISCV_TARGET=riscv${RISCV_XLEN}-unknown-elf
 #                          LLVM Flags
 #----------------------------------------------------------
 LLVM_FLAGS="-march=rv64gcv_zfh_zvfh0p1 -menable-experimental-extensions -mabi=${RISCV_ABI} -mno-relax -fuse-ld=lld"
-LLVM_V_FLAGS="-fno-vectorize -scalable-vectorization=off -mllvm -riscv-v-vector-bits-min=0 -Xclang -target-feature -Xclang +no-optimized-zero-stride-load"
+LLVM_V_FLAGS="-fno-vectorize -fno-slp-vectorize -mllvm -riscv-v-vector-bits-min=0 -Xclang -target-feature -Xclang +no-optimized-zero-stride-load"
 RISCV_LDFLAGS="-static -nostartfiles -lm -Wl,--gc-sections -T ${DV_ROOT}/verif/diag/assembly/include/riscv/ariane/link.ld"
 #----------------------------------------------------------
 #                          Build
 #----------------------------------------------------------
 RISCV_V_LLVM="${DV_ROOT}/design/chip/tile/ara/install/riscv-llvm/bin/clang"
-RISCV_LINK_OPTS="-nostdlib ${RISCV_LDFLAGS} ${LLVM_FLAGS} -DDEFINE_MALLOC -DDEFINE_REALLOC -DDEFINE_FREE -Werror-implicit-function-declaration -fno-math-errno -Wl,-Map=diag.map"
-RISCV_V_LLVM_OPTS="-DPREALLOCATE=1 -mcmodel=medany -std=gnu99 -O2 -fno-common -fno-builtin-printf $2"
+
+RISCV_LINK_OPTS="-nostdlib ${RISCV_LDFLAGS} ${LLVM_FLAGS} ${LLVM_V_FLAGS} -DDEFINE_MALLOC -DDEFINE_REALLOC -DDEFINE_FREE -Werror-implicit-function-declaration -fno-math-errno -Wl,-Map=diag.map"
+
+RISCV_V_LLVM_OPTS="-DPREALLOCATE=1 -mcmodel=medany -std=gnu99 -O2 -fno-common -fno-builtin-printf $2  -DPITON_NUMTILES=${PITON_NUM_TILES}"
+
 INCS="-I${DV_ROOT}/verif/diag/assembly/include/riscv/ariane"
 ARA_INCS="-I${DV_ROOT}/design/chip/tile/ara/apps/riscv-tests/isa/macros/vector"
 

@@ -90,6 +90,12 @@ module chipset_impl(
     // invalid access inside packet filter
     output                                      invalid_access_o,
 
+`ifdef POLARA_GATESIM
+    output wire                                 good_end,
+    output wire                                 bad_end,
+    input  wire                                 test_ena,
+`endif
+
 `ifdef ALVEO_BOARD
     input         pcie_refclk_clk_n    ,
     input         pcie_refclk_clk_p    ,
@@ -555,8 +561,23 @@ test_end_checker test_end_checker(
     .test_bad_end           (test_bad_end)
 );
 `else
-    assign test_good_end = 1'b0;
-    assign test_bad_end = 1'b0;
+    // assign test_good_end = 1'b0;
+    // assign test_bad_end = 1'b0;
+
+    `ifdef POLARA_GATESIM
+        test_end_checker test_end_checker(
+            .clk                    (chipset_clk),
+            .rst_n                  (chipset_rst_n),
+
+            .src_checker_noc2_val   (chip_filter_noc2_valid),
+            .src_checker_noc2_data  (chip_filter_noc2_data),
+            .src_checker_noc2_rdy   (filter_chip_noc2_ready),
+
+            .uart_boot_en           (test_ena),
+            .test_good_end          (good_end),
+            .test_bad_end           (bad_end)
+        );        
+    `endif
 `endif
 
 <%
@@ -1236,35 +1257,70 @@ noc_simple_merger uart_int_pkt_noc_simple_merger (
 
 `else // PITONSYS_IOCTRL
 
-assign net_interrupt  = 1'b0;
-assign uart_interrupt = 1'b0;
+`ifdef CIOP_REAL_IOB
+    wire ciop_iob_rst_n;
+    assign ciop_iob_rst_n = io_ctrl_rst_n & test_start & ~piton_ready_n;
 
-// Fake iobridge
-// Tie noc1 input low because it's unused
-assign intf_chipset_rdy_noc1 = 1'b0;
-ciop_fake_iob ciop_fake_iob(
-    .noc_out_val       ( iob_filter_noc2_valid ),
-    .noc_out_rdy       ( filter_iob_noc2_ready ),
-    .noc_out_data      ( iob_filter_noc2_data  ),
+    ciop_iob ciop_iob     (
+        .chip_clk        ( chipset_clk           ),
+        .fpga_clk        ( chipset_clk           ),
+        .rst_n           ( ciop_iob_rst_n        ),
 
-    <%
-        text = r'''
-        .spc0_inst_done    (`PITON_CORE0_INST_DONE),
-        .pc_w0             (`PITON_CORE0_PC_W0),
-        '''
+        .noc1_in_val     ( intf_chipset_val_noc1 ),
+        .noc1_in_data    ( intf_chipset_data_noc1),
+        .noc1_in_rdy     ( intf_chipset_rdy_noc1 ),
 
-        for i in range (PITON_NUM_TILES):
-            text2 = text;
-            text2 = text2.replace("PITON_CORE0", "PITON_CORE" + repr(i));
-            text2 = text2.replace("spc0_inst_done", "spc" + repr(i) + "_inst_done");
-            text2 = text2.replace("pc_w0", "pc_w" + repr(i));
-            text2 = text2.replace("PC_W0", "PC_W" + repr(i));
-            print(text2)
-    %>
-    .clk               (chipset_clk),
-    .rst_n             (chipset_rst_n)
-//    .rst_n             (`SPARC_CORE0.reset_l)
-);
+        .noc2_out_val    ( iob_filter_noc2_valid ),
+        .noc2_out_data   ( iob_filter_noc2_data  ),
+        .noc2_out_rdy    ( filter_iob_noc2_ready ),
+
+        .noc3_in_val     ( filter_iob_noc3_valid ),
+        .noc3_in_data    ( filter_iob_noc3_data  ),
+        .noc3_in_rdy     ( iob_filter_noc3_ready ),
+
+        .noc2_in_val     ( buf_iob_noc2_valid    ),
+        .noc2_in_data    ( buf_iob_noc2_data     ),
+        .noc2_in_rdy     ( iob_buf_noc2_ready    ),
+
+        .noc3_out_val    ( iob_buf_noc3_valid    ),
+        .noc3_out_data   ( iob_buf_noc3_data     ),
+        .noc3_out_rdy    ( buf_iob_noc3_ready    ),
+
+        .uart_interrupt ( uart_interrupt         ),
+        .net_interrupt  ( net_interrupt          )
+    );
+
+`else
+    assign net_interrupt  = 1'b0;
+    assign uart_interrupt = 1'b0;
+
+    // Fake iobridge
+    // Tie noc1 input low because it's unused
+    assign intf_chipset_rdy_noc1 = 1'b0;
+    ciop_fake_iob ciop_fake_iob(
+        .noc_out_val       ( iob_filter_noc2_valid ),
+        .noc_out_rdy       ( filter_iob_noc2_ready ),
+        .noc_out_data      ( iob_filter_noc2_data  ),
+
+        <%
+            text = r'''
+            .spc0_inst_done    (`PITON_CORE0_INST_DONE),
+            .pc_w0             (`PITON_CORE0_PC_W0),
+            '''
+
+            for i in range (PITON_NUM_TILES):
+                text2 = text;
+                text2 = text2.replace("PITON_CORE0", "PITON_CORE" + repr(i));
+                text2 = text2.replace("spc0_inst_done", "spc" + repr(i) + "_inst_done");
+                text2 = text2.replace("pc_w0", "pc_w" + repr(i));
+                text2 = text2.replace("PC_W0", "PC_W" + repr(i));
+                print(text2)
+        %>
+        .clk               (chipset_clk),
+        .rst_n             (chipset_rst_n)
+    //    .rst_n             (`SPARC_CORE0.reset_l)
+    );
+`endif
 
 // I/O AXI splitter, needed for uart-hello-world.s
 fake_uart fake_uart (

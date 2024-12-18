@@ -41,21 +41,24 @@ module OCI (
    input core_ref_clk,
    input io_clk,
    input rst_n,
-   input pll_rst_n,
-   input [4:0] pll_rangea,
-   input [1:0] clk_mux_sel,
+   input fll_rst_n,
+   output       fll_lock,
+   output       fll_clkdiv,
+   input        fll_bypass,
+   input        fll_opmode,
+   input  [3:0] fll_range,
+   input        fll_cfgreq,
+   input clk_mux_sel,
    input clk_en,
-   input pll_bypass,
    input async_mux,
    input oram_on,
    input oram_traffic_gen,
    input oram_dummy_gen,
-   output pll_lock,
-   input  wire jtag_clk,
-   input  wire jtag_rst_l,
-   input  wire jtag_modesel,
-   input  wire jtag_datain,
-   output wire jtag_dataout,
+    input   wire tck,
+    input   wire trstn,
+    input   wire tms,
+    input   wire tdi,
+    output  wire tdo,
    input  [31:0]                 intf_chip_data,
    input  [1:0]                  intf_chip_channel,
    output [2:0]                  intf_chip_credit_back,
@@ -66,21 +69,24 @@ module OCI (
    output core_ref_clk_inter,
    output io_clk_inter,
    output rst_n_inter,
-   output pll_rst_n_inter,
-   output [4:0] pll_rangea_inter,
-   output [1:0] clk_mux_sel_inter,
+   output fll_rst_n_inter,
+   input         fll_lock_inter,
+   input         fll_clkdiv_inter,
+   output        fll_bypass_inter,
+   output        fll_opmode_inter,
+   output  [3:0] fll_range_inter,
+   output        fll_cfgreq_inter,
+   output clk_mux_sel_inter,
    output clk_en_inter,
-   output pll_bypass_inter,
    output async_mux_inter,
    output oram_on_inter,
    output oram_traffic_gen_inter,
    output oram_dummy_gen_inter,
-   input  pll_lock_inter,
-   output wire jtag_clk_inter,
-   output wire jtag_rst_l_inter,
-   output wire jtag_modesel_inter,
-   output wire jtag_datain_inter,
-   input  wire jtag_dataout_inter,
+   output wire tck_inter,
+   output wire trstn_inter,
+   output wire tms_inter,
+   output wire tdi_inter,
+   input  wire tdo_inter,
    output [31:0]                 intf_chip_data_inter,
    output [1:0]                  intf_chip_channel_inter,
    input  [2:0]                  intf_chip_credit_back_inter,
@@ -94,21 +100,24 @@ module OCI (
     assign core_ref_clk_inter = core_ref_clk;
     assign io_clk_inter = io_clk;
     assign rst_n_inter = rst_n;
-    assign pll_rst_n_inter = pll_rst_n;
-    assign pll_rangea_inter = pll_rangea;
+    assign fll_rst_n_inter = fll_rst_n;
+    assign fll_lock = fll_lock_inter;
+    assign fll_clkdiv = fll_clkdiv_inter;
+    assign fll_bypass_inter = fll_bypass;
+    assign fll_opmode_inter = fll_opmode;
+    assign fll_range_inter = fll_range;
+    assign fll_cfgreq_inter = fll_cfgreq;
     assign clk_mux_sel_inter = clk_mux_sel;
     assign clk_en_inter = clk_en;
-    assign pll_bypass_inter = pll_bypass;
     assign async_mux_inter = async_mux;
     assign oram_on_inter = oram_on;
     assign oram_traffic_gen_inter = oram_traffic_gen;
     assign oram_dummy_gen_inter = oram_dummy_gen;
-    assign pll_lock = pll_lock_inter;
-    assign jtag_clk_inter = jtag_clk;
-    assign jtag_rst_l_inter = jtag_rst_l;
-    assign jtag_modesel_inter = jtag_modesel;
-    assign jtag_datain_inter = jtag_datain;
-    assign jtag_dataout = jtag_dataout_inter;
+    assign tck_inter = tck;
+    assign trstn_inter = trstn;
+    assign tms_inter = tms;
+    assign tdi_inter = tdi;
+    assign tdo = tdo_inter;
     assign intf_chip_data_inter = intf_chip_data;
     assign intf_chip_channel_inter = intf_chip_channel;
     assign intf_chip_credit_back = intf_chip_credit_back_inter;
@@ -116,28 +125,31 @@ module OCI (
     assign chip_intf_channel = chip_intf_channel_inter;
     assign chip_intf_credit_back_inter = chip_intf_credit_back;
 
-`else // `ifndef USE_FAKE_IOS
+`else
     
     // PUT REAL PADS AND I/Os HERE FOR SYNTHESIS AND BACKEND
     // BELOW IS A DUMMY SO FUNCTIONALITY IS MAINTAINED
     assign core_ref_clk_inter = core_ref_clk;
     assign io_clk_inter = io_clk;
     assign rst_n_inter = rst_n;
-    assign pll_rst_n_inter = pll_rst_n;
-    assign pll_rangea_inter = pll_rangea;
+    assign fll_rst_n_inter = fll_rst_n;
+    assign fll_lock = fll_lock_inter;
+    assign fll_clkdiv = fll_clkdiv_inter;
+    assign fll_bypass_inter = fll_bypass;
+    assign fll_opmode_inter = fll_opmode;
+    assign fll_range_inter = fll_range;
+    assign fll_cfgreq_inter = fll_cfgreq;
     assign clk_mux_sel_inter = clk_mux_sel;
     assign clk_en_inter = clk_en;
-    assign pll_bypass_inter = pll_bypass;
     assign async_mux_inter = async_mux;
     assign oram_on_inter = oram_on;
     assign oram_traffic_gen_inter = oram_traffic_gen;
     assign oram_dummy_gen_inter = oram_dummy_gen;
-    assign pll_lock = pll_lock_inter;
-    assign jtag_clk_inter = jtag_clk;
-    assign jtag_rst_l_inter = jtag_rst_l;
-    assign jtag_modesel_inter = jtag_modesel;
-    assign jtag_datain_inter = jtag_datain;
-    assign jtag_dataout = jtag_dataout_inter;
+    assign tck_inter = tck;
+    assign trstn_inter = trstn;
+    assign tms_inter = tms;
+    assign tdi_inter = tdi;
+    assign tdo = tdo_inter;
     assign intf_chip_data_inter = intf_chip_data;
     assign intf_chip_channel_inter = intf_chip_channel;
     assign intf_chip_credit_back = intf_chip_credit_back_inter;
@@ -149,3 +161,4 @@ module OCI (
    
    endmodule
    
+

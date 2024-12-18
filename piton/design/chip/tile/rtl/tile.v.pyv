@@ -37,7 +37,7 @@ if PITON_RV64_PLATFORM:
 %>
 
 module tile #(
-     parameter TILE_TYPE = `SPARC_TILE
+     parameter TILE_TYPE = `ARIANE_RV64_TILE
 ) (
     input                               clk,
     input                               rst_n,    // trin: assumed to be synchronous
@@ -193,11 +193,12 @@ print(s)
 );
     // clock gating
     wire clk_gated;
-    clk_gating_latch clk_gating_latch(
-        .clk(clk),
-        .clk_en(clk_en),
-        .clk_out(clk_gated)
-    );
+    // clk_gating_latch clk_gating_latch(
+    //     .clk(clk),
+    //     .clk_en(clk_en),
+    //     .clk_out(clk_gated)
+    // );
+    assign clk_gated = clk;
 
     // flop reset signal
     reg rst_n_f;
@@ -1081,7 +1082,7 @@ if romIsPresent:
 print("    assign ariane_bootaddr  =  64'h%s;" % bootAddr)
 %>
 
-
+`ifndef POLARA_GATESIM
     ara_verilog_wrap #(
 <%
 str = '''
@@ -1131,7 +1132,33 @@ print(str)
         .l15_req_o   ( l15_req                ),
         .l15_rtrn_i  ( l15_rtrn               )
     );
+`else
 
+  cvvec core ( 
+        .clk_i(clk_gated),
+        .reset_l(rst_n_f),
+        .spc_grst_l(spc_grst_l),
+        .boot_addr_i(ariane_bootaddr), 
+        .hart_id_i({{64-`JTAG_FLATID_WIDTH{1'b0}}, flat_tileid}), 
+        .irq_i(irq_i),
+        .ipi_i(ipi_i),
+        .time_irq_i(timer_irq_i),
+        .debug_req_i(debug_req_i),
+        .default_chipid(default_chipid),
+        .default_coreid_x(default_coreid_x), 
+        .default_coreid_y(default_coreid_y),
+        .noc1_valid_out(src1_merger_vr_noc1_val),
+        .noc1_data_out(src1_merger_vr_noc1_dat),
+        .noc1_ready_in(src1_merger_vr_noc1_rdy),
+        .noc2_valid_in(splitter_dst1_vr_noc2_val),
+        .noc2_data_in(splitter_dst1_vr_noc2_dat),
+        .noc2_ready_out(splitter_dst1_vr_noc2_rdy),
+        .config_system_tile_count_5_0(config_system_tile_count), 
+        .config_home_alloc_method(config_home_alloc_method),
+        .l15_req_o(l15_req),
+        .l15_rtrn_i(l15_rtrn));
+
+`endif // ifndef POLARA_GATESIM
     assign unavailable_o = 1'b0;
 
 `endif // ifdef PITON_ARIANE
