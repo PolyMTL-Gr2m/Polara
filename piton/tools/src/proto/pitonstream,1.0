@@ -172,7 +172,8 @@ def configureUART(port):
             stopbits=serial.STOPBITS_ONE,
             timeout=0
         )
-    except:
+    except Exception as error:
+        print("An exception occurred:", error)
         print_error("Can not open serial device %s" % port_full)
         print_error("Provide correct device name using -p option")
         return None
@@ -362,6 +363,7 @@ def main():
         st_brd = StorageBoard("bram", options.board)
 
     if options.storage == "ddr":
+        print("Storage option selected is ddr.")
         st_brd = StorageBoard("dmw", options.board)
 
     # Get list of tests and board configuration

@@ -48,6 +48,7 @@ MAP_MODULE_NAME = "storage_addr_trans.v"
 NOC_PAYLOAD_WIDTH = 512
 STORAGE_BLOCK_BIT_WIDTH         =   {   "ddr":  {   "vc707":512,
                                                     "vcu118":512,
+                                                    "alveou280":512,
                                                     "xupp3r":512,
                                                     "nexys4ddr":128,
                                                     "genesys2":256,
@@ -56,6 +57,7 @@ STORAGE_BLOCK_BIT_WIDTH         =   {   "ddr":  {   "vc707":512,
                                                 },
                                         "bram": {   "vc707":512,
                                                     "vcu118":512,
+                                                    "alveou280":512,
                                                     "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
@@ -65,6 +67,7 @@ STORAGE_BLOCK_BIT_WIDTH         =   {   "ddr":  {   "vc707":512,
                                                 },
                                         "dmw":  {   "vc707":512,
                                                     "vcu118":512,
+                                                    "alveou280":512,
                                                     "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
@@ -76,6 +79,7 @@ STORAGE_BLOCK_BIT_WIDTH         =   {   "ddr":  {   "vc707":512,
 
 STORAGE_ADDRESSABLE_BIT_WIDTH   =   {   "ddr":  {   "vc707":64,
                                                     "vcu118":64,
+                                                    "alveou280":72,
                                                     "xupp3r":64,
                                                     "nexys4ddr":16,
                                                     "genesys2":32,
@@ -84,6 +88,7 @@ STORAGE_ADDRESSABLE_BIT_WIDTH   =   {   "ddr":  {   "vc707":64,
                                                 },
                                         "bram": {   "vc707":512,
                                                     "vcu118":512,
+                                                    "alveou280":512,
                                                     "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
@@ -93,17 +98,21 @@ STORAGE_ADDRESSABLE_BIT_WIDTH   =   {   "ddr":  {   "vc707":64,
                                                 },
                                         "dmw": {    "vc707":512,
                                                     "vcu118":512,
+                                                    "alveou280":512,
                                                     "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
                                                     "nexysVideo":512,
                                                     "piton_board":512,
                                                     "f1":512
+                                                },
+                                        "hbm": {    "alveou280":33
                                                 }
                                     }
 
 STORAGE_BIT_SIZE                =   {   "ddr":  {   "vc707":8*2**30,
                                                     "vcu118":2*8*2**30,
+                                                    "alveou280":2*8*2**30,
                                                     "xupp3r":32*8*2**30,
                                                     "nexys4ddr":8*128*2**20,
                                                     "genesys2":8*2**30,
@@ -112,6 +121,7 @@ STORAGE_BIT_SIZE                =   {   "ddr":  {   "vc707":8*2**30,
                                                 },
                                         "bram": {   "vc707":16384*512,
                                                     "vcu118":16384*512,
+                                                    "alveou280":116384*512,
                                                     "xupp3r":16384*512,
                                                     "nexys4ddr":16384*512,
                                                     "genesys2":16384*512,
@@ -121,11 +131,14 @@ STORAGE_BIT_SIZE                =   {   "ddr":  {   "vc707":8*2**30,
                                                 },
                                         "dmw":  {   "vc707":8*2**30,
                                                     "vcu118":2*8*2**30,
+                                                    "alveou280":2*8*2**30,
                                                     "xupp3r":32*8*2**30,
                                                     "nexys4ddr":8*128*2**20,
                                                     "genesys2":8*2**30,
                                                     "nexysVideo":8*512*2**20,
                                                     "f1":8*4*2**30
+                                                },
+                                        "hbm":  {   "alveou280":8*4*2*33
                                                 }
                                     }
 DW_BIT_SIZE     = 64
@@ -183,9 +196,15 @@ def find_design_block(design_block):
 # Output:   div         -   int - uart divider latch
 ############################################################################
 def calcUARTLatch(design_data, board):
+    print("design_data[Boards]=", design_data["BOARDS"])
+    print("design_data[Boards][board]=", design_data["BOARDS"][board])
+    print("design_data[Boards][board][FREQ]=", design_data["BOARDS"][board]["FREQ"])
+    print("Calculating (float(design_data[BOARDS][board][FREQ]) * 10**6) / (16 * UART_BAUD_RATE)")
+    
     div = (float(design_data["BOARDS"][board]["FREQ"]) * 10**6) / (16 * UART_BAUD_RATE);
+    print("Result float=", div)
     div = int(round(div))
-
+    print("Result int=", div)    
     return div
 
 
@@ -345,7 +364,7 @@ def buildProjectSuccess(log_dir):
         dbg.print_error("Check: %s" % fpath)
         return False
 
-    dbg.print_info("Project was build successfully!")
+    dbg.print_info("Project was built successfully!")
     return True
 
 

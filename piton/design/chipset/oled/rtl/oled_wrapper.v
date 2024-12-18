@@ -152,6 +152,7 @@ assign btnu_pulse = btnu & ~btnu_r;
 
 always @(posedge sys_clk) begin
     disp_string <= `OLED_STRING;
+    //disp_string <= "0123456789012345678901234567890123456789012345678901234567891234";
 end
 
 generate begin

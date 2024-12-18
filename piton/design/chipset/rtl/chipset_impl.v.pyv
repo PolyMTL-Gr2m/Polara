@@ -62,6 +62,9 @@
 //                                      purposes
 //  NEXYS4DDR_BOARD NEXYSVIDEO_BOARD    Used to indicate which board this code is
 //                                      being synthesized for. There are more than just these
+//  POLARA_GEN2_CHIPSET                 Uses specific memory controller for the chipset being implemented
+//                                      on a genesys2 board for the Polara project.
+//  POLARA_GEN2_CHIPSETSE               Uses a single ended clock for the MIG instead of a differential clock.
 <%
 import os
 import sys
@@ -91,6 +94,38 @@ module chipset_impl(
     output wire                                 good_end,
     output wire                                 bad_end,
     input  wire                                 test_ena,
+`endif
+
+`ifdef ALVEO_BOARD
+    input         pcie_refclk_clk_n    ,
+    input         pcie_refclk_clk_p    ,
+    input         pcie_perstn          ,                
+    input  [15:0] pci_express_x16_rxn  ,
+    input  [15:0] pci_express_x16_rxp  ,
+    output [15:0] pci_express_x16_txn  ,
+    output [15:0] pci_express_x16_txp  ,
+    input         resetn ,
+    output        chip_rstn            ,
+`endif
+
+`ifdef POLARA_GEN2_CHIPSET
+`ifdef POLARA_GEN2_CHIPSETSE
+    input wire mig_ddr3_sys_se_clock_clk,
+    output wire chip_async_mux,
+    output wire chip_clk_en,
+    output wire chip_clk_mux_sel,
+    output wire chip_rst_n,
+    output wire fll_rst_n,
+    output wire fll_bypass,
+    input  wire fll_clkdiv,
+    input  wire fll_lock,
+    output wire fll_cfg_req,
+    output wire fll_opmode,
+    output wire [3:0] fll_range,
+`else
+    input wire mig_ddr3_sys_diff_clock_clk_n,
+    input wire mig_ddr3_sys_diff_clock_clk_p,
+`endif
 `endif
 
 `ifndef PITONSYS_NO_MC
@@ -158,11 +193,11 @@ module chipset_impl(
     output [`DDR3_CS_WIDTH-1:0]                 ddr_cs_n,
 `endif // endif NEXYSVIDEO_BOARD
 `ifdef PITONSYS_DDR4
-`ifdef XUPP3R_BOARD
+`ifdef XUPP3R_OR_ALVEO
     output                                      ddr_parity,
 `else
     inout [`DDR3_DM_WIDTH-1:0]                  ddr_dm,
-`endif // XUPP3R_BOARD
+`endif // XUPP3R_OR_ALVEO
 `else // PITONSYS_DDR4
     output [`DDR3_DM_WIDTH-1:0]                 ddr_dm,
 `endif // PITONSYS_DDR4
@@ -336,6 +371,14 @@ wire                                            chip_filter_noc3_ready;
 wire                                            test_good_end;
 wire                                            test_bad_end;
 
+wire                                            int_pkt_filter_noc2_valid;
+wire    [`NOC_DATA_WIDTH-1:0]                   int_pkt_filter_noc2_data;
+wire                                            filter_int_pkt_noc2_ready;
+
+wire                                            uart_merger_filter_noc2_valid;
+wire    [`NOC_DATA_WIDTH-1:0]                   uart_merger_filter_noc2_data;
+wire                                            filter_uart_merger_noc2_ready;
+
 <%
 for i in range(len(devices)):
     if devices[i]["virtual"]:
@@ -470,8 +513,13 @@ assign chip_buf_noc3_data = {`NOC_DATA_WIDTH{1'b0}};
         assign uart_timeout_en = 1'b0;
     `else // ifdef PITONSYS_UART
         `ifndef PITONSYS_UART_BOOT
-            assign uart_boot_en = 1'b0;
-            assign uart_timeout_en = 1'b0;
+            `ifndef ALVEO_BOARD
+                assign uart_boot_en = 1'b0;
+                assign uart_timeout_en = 1'b0;
+            `else
+                assign uart_boot_en    = 1'b1;
+                assign uart_timeout_en = 1'b0;
+            `endif // endif ALVEO_BOARD
         `endif // endif PITONSYS_UART_BOOT
     `endif // endif PITONSYS_UART
 `endif // endif PITONSYS_IOCTRL
@@ -799,6 +847,105 @@ credit_to_valrdy noc3_xbar_to_%s(
             .m_axi_bready(m_axi_bready), 
             .ddr_ready(ddr_ready)
         );
+    `elsif POLARA_GEN2_CHIPSET
+      gen2_polara_top gen2_polara_top_i(
+        .ddr3_sdram_addr(ddr_addr),
+        .ddr3_sdram_ba(ddr_ba),
+        .ddr3_sdram_cas_n(ddr_cas_n),
+        .ddr3_sdram_ck_n(ddr_ck_n),
+        .ddr3_sdram_ck_p(ddr_ck_p),
+        .ddr3_sdram_cke(ddr_cke),
+        .ddr3_sdram_cs_n(ddr_cs_n),
+        .ddr3_sdram_dm(ddr_dm),
+        .ddr3_sdram_dq(ddr_dq),
+        .ddr3_sdram_dqs_n(ddr_dqs_n),
+        .ddr3_sdram_dqs_p(ddr_dqs_p),
+        .ddr3_sdram_odt(ddr_odt),
+        .ddr3_sdram_ras_n(ddr_ras_n),
+        .ddr3_sdram_reset_n(ddr_reset_n),
+        .ddr3_sdram_we_n(ddr_we_n),
+
+        .chipset_clk(chipset_clk),
+    `ifdef POLARA_GEN2_CHIPSETSE
+        .mig_ddr3_sys_se_clock_clk(mig_ddr3_sys_se_clock_clk),
+        .chip_async_mux(chip_async_mux),
+        .chip_clk_en(chip_clk_en),
+        .chip_clk_mux_sel(chip_clk_mux_sel),
+        .chip_rst_n(chip_rst_n),
+        .fll_rst_n(fll_rst_n),
+        .fll_bypass(fll_bypass),
+        .fll_clkdiv(fll_clkdiv),
+        .fll_lock(fll_lock),
+        .fll_cfg_req(fll_cfg_req),
+        .fll_opmode(fll_opmode),
+        .fll_range(fll_range),
+    `else
+        .mig_ddr3_sys_diff_clock_clk_n(mig_ddr3_sys_diff_clock_clk_n),
+        .mig_ddr3_sys_diff_clock_clk_p(mig_ddr3_sys_diff_clock_clk_p),
+    `endif
+        .sys_rst_n(chipset_rst_n),
+
+        .mem_flit_in_data(buf_mem_noc2_data),
+        .mem_flit_in_val(buf_mem_noc2_valid),
+        .mem_flit_in_rdy(mem_buf_noc2_ready),
+
+        .mem_flit_out_data(mem_buf_noc3_data),
+        .mem_flit_out_val(mem_buf_noc3_valid),
+        .mem_flit_out_rdy(buf_mem_noc3_ready),
+
+        .init_calib_complete_out(init_calib_complete),
+        .mem_ui_clk_sync_rst(mc_ui_clk_sync_rst),
+
+        .uart_boot_en(uart_boot_en)
+     );
+    `elsif ALVEO_BOARD
+        u280_polara_top u280_polara_i (
+
+            // PCIe
+            .pci_express_x16_rxn(pci_express_x16_rxn),
+            .pci_express_x16_rxp(pci_express_x16_rxp),
+            .pci_express_x16_txn(pci_express_x16_txn),
+            .pci_express_x16_txp(pci_express_x16_txp),
+            .pcie_perstn(pcie_perstn),
+            .pcie_refclk_clk_n(pcie_refclk_clk_n),
+            .pcie_refclk_clk_p(pcie_refclk_clk_p),
+            .resetn(resetn),
+            
+            // DDR4 physicall interface
+            .c0_ddr4_act_n             ( ddr_act_n                 ), // cas_n, ras_n and we_n are multiplexed in ddr4
+            .c0_ddr4_adr               ( ddr_addr                  ),
+            .c0_ddr4_ba                ( ddr_ba                    ),
+            .c0_ddr4_bg                ( ddr_bg                    ), // bank group address
+            .c0_ddr4_ck_t              ( ddr_ck_p                  ),
+            .c0_ddr4_ck_c              ( ddr_ck_n                  ),
+            .c0_ddr4_cke               ( ddr_cke                   ),
+            .c0_ddr4_cs_n              ( ddr_cs_n                  ),
+            .c0_ddr4_dq                ( ddr_dq                    ),
+            .c0_ddr4_dqs_c             ( ddr_dqs_n                 ),
+            .c0_ddr4_dqs_t             ( ddr_dqs_p                 ),
+            .c0_ddr4_odt               ( ddr_odt                   ),
+            .c0_ddr4_par               ( ddr_parity                ),                        // output wire c0_ddr4_parity
+            .c0_ddr4_reset_n           ( ddr_reset_n               ),
+            
+            // DDR4 clock & reset
+            .c0_sysclk_clk_p           ( mc_clk_p                 ),
+            .c0_sysclk_clk_n           ( mc_clk_n                 ),
+            
+            .c0_init_calib_complete    ( init_calib_complete       ),
+            
+            .chip_rstn                 (chip_rstn             ),
+            .chipset_clk               (chipset_clk           ),
+            .chipset_rstn              (chipset_rst_n          ),
+            
+            .mem_flit_in_val(buf_mem_noc2_valid),
+            .mem_flit_in_data(buf_mem_noc2_data),
+            .mem_flit_in_rdy(mem_buf_noc2_ready),
+            
+            .mem_flit_out_val(mem_buf_noc3_valid),
+            .mem_flit_out_data(mem_buf_noc3_data),
+            .mem_flit_out_rdy(buf_mem_noc3_ready)
+            
+            );
     `else
         mc_top mc_top(
             .mc_ui_clk_sync_rst(mc_ui_clk_sync_rst),
@@ -996,9 +1143,9 @@ uart_top        uart_top (
     .xbar_uart_noc3_ready       ( buf_uart_noc3_ready                   ),
 
     // output to noc2
-    .uart_xbar_noc2_valid       ( uart_filter_noc2_valid                ),
-    .uart_xbar_noc2_data        ( uart_filter_noc2_data                 ),
-    .xbar_uart_noc2_ready       ( filter_uart_noc2_ready                ),
+    .uart_xbar_noc2_valid       ( uart_merger_filter_noc2_valid                ),
+    .uart_xbar_noc2_data        ( uart_merger_filter_noc2_data                 ),
+    .xbar_uart_noc2_ready       ( filter_uart_merger_noc2_ready                ),
 
     // input from noc3
     .xbar_uart_noc3_valid       ( filter_uart_noc3_valid                ),
@@ -1010,6 +1157,35 @@ uart_top        uart_top (
     assign uart_interrupt = 1'b0;
     assign test_start = 1'b1;
 `endif // endif PITONSYS_UART
+
+int_pkt_gen int_pkt_gen (
+    .fpga_clk       ( chipset_clk                           ),
+    .rst_n          ( chipset_rst_n                         ),
+    .noc_out_val    ( int_pkt_filter_noc2_valid             ),
+    .noc_out_data   ( int_pkt_filter_noc2_data              ),
+    .noc_out_rdy    ( filter_int_pkt_noc2_ready             ),
+    .interrupt      ( uart_interrupt                        ),
+    .chip_id        ( {(`NOC_CHIPID_WIDTH){1'b0}}           ),
+    .x_pos          ( `NOC_X_WIDTH'd0                       ),
+    .y_pos          ( `NOC_Y_WIDTH'd0                       ),
+    .irq_le         ( 1'b0                                  ), //0: level, 1: edge
+    .device_id      ( 7'b1                                  ) // 32 devices
+);
+
+noc_simple_merger uart_int_pkt_noc_simple_merger (
+    .clk                    ( chipset_clk                   ),
+    .rst_n                  ( chipset_rst_n                 ),
+    .src0_merger_vr_noc_val ( int_pkt_filter_noc2_valid     ),
+    .src0_merger_vr_noc_dat ( int_pkt_filter_noc2_data      ),
+    .src0_merger_vr_noc_rdy ( filter_int_pkt_noc2_ready     ),
+    .src1_merger_vr_noc_val ( uart_merger_filter_noc2_valid ),
+    .src1_merger_vr_noc_dat ( uart_merger_filter_noc2_data  ), 
+    .src1_merger_vr_noc_rdy ( filter_uart_merger_noc2_ready ),
+    .merger_dst_vr_noc_val  ( uart_filter_noc2_valid        ),
+    .merger_dst_vr_noc_dat  ( uart_filter_noc2_data         ),
+    .merger_dst_vr_noc_rdy  ( filter_uart_noc2_ready        )
+);
+
 
 // SPI interface
 `ifdef PITONSYS_SPI
@@ -1171,7 +1347,11 @@ fake_uart fake_uart (
     // this is for selecting the right bootrom (1: baremetal, 0: linux)
     wire ariane_boot_sel;
 `ifdef PITON_FPGA_SYNTH
-  assign ariane_boot_sel   = uart_boot_en;
+  `ifdef ALVEO_BOARD
+    assign ariane_boot_sel = 1'b1;
+  `else
+    assign ariane_boot_sel   = uart_boot_en;
+  `endif
 `else
   `ifdef ARIANE_SIM_LINUX_BOOT
     assign ariane_boot_sel = 1'b0;

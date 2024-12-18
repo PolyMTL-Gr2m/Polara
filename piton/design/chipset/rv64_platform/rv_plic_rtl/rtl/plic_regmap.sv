@@ -129,6 +129,7 @@ always_comb begin
   ie_new = '0;
   ie_we = '0;
   ie_re_o = '0;
+  ip_re_o = '0;
   threshold_new = '0;
   threshold_we = '0;
   threshold_re_o = '0;

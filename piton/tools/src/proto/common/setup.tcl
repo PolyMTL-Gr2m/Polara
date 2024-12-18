@@ -62,6 +62,20 @@ foreach ip_file ${ALL_IP_FILE_PREFIXES} {
         lappend ALL_XCO_IP_FILES "${ip_file}.xco"
 }
 
+set ALL_BD_FILES [list ]
+# Use block design only for alveou280 fpga emulation.
+if { ${BOARD} == "alveou280" } {
+    foreach bd_file ${DESIGN_BD_FILES} {
+        lappend ALL_BD_FILES "${bd_file}.bd"
+    }
+}
+# Use block design if using --gen2chipset protosyn option
+if { [ info exists ::env(POLARA_GEN2_CHIPSET) ] } {
+    foreach bd_file ${DESIGN_BD_FILES} {
+        lappend ALL_BD_FILES "${bd_file}.bd"
+    }
+}
+
 set ALL_COE_FILES [concat ${DESIGN_COE_IP_FILES}]
 
 set ALL_PRJ_IP_FILES [concat ${DESIGN_PRJ_IP_FILES}]
@@ -94,7 +108,7 @@ if {[info exists ::env(PITON_PICO_HET)]} {
 }
 
 if {[info exists ::env(PITON_ARIANE)]} {
-  append ALL_DEFAULT_VERILOG_MACROS " PITON_ARIANE PITON_RV64_PLATFORM PITON_RV64_DEBUGUNIT PITON_RV64_CLINT PITON_RV64_PLIC WT_DCACHE"
+  append ALL_DEFAULT_VERILOG_MACROS " PITON_ARIANE PITON_RV64_PLATFORM PITON_RV64_DEBUGUNIT PITON_RV64_CLINT PITON_RV64_PLIC WT_DCACHE SYNTHESIS VLEN=4096 NR_LANES=4 ARIANE_ACCELERATOR_PORT L2_SEND_NC_REQ"
 }
 
 for {set k 0} {$k < $::env(PITON_NUM_TILES)} {incr k} {

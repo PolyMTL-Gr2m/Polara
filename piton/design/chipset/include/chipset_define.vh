@@ -82,8 +82,13 @@
     `define ADDR_TRANS_PHYS_WIDTH_ALIGN     4
     `define ADDR_TRANS_SECTION_MULT         4
 `elsif GENESYS2_BOARD       // 32-bit PHY
+ `ifdef POLARA_GEN2_CHIPSET
+    `define ADDR_TRANS_PHYS_WIDTH_ALIGN     6
+    `define ADDR_TRANS_SECTION_MULT         2
+ `else
     `define ADDR_TRANS_PHYS_WIDTH_ALIGN     5
     `define ADDR_TRANS_SECTION_MULT         2
+ `endif
 `else   // 64-bit interface by default
     `define ADDR_TRANS_PHYS_WIDTH_ALIGN     6
     `define ADDR_TRANS_SECTION_MULT         1

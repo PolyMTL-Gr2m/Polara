@@ -64,6 +64,7 @@ def usage():
     print("                  genesys2", file=sys.stderr)
     print("                  nexysVideo", file=sys.stderr)
     print("                  f1", file=sys.stderr)
+    print("                  alveou280", file=sys.stderr)
     print("\n       -d, --design <design>", file=sys.stderr)
     print("              Name of design module to synthesize.  The default is 'system', which", file=sys.stderr)
     print("              synthesizes a full system with chip and chipset. See", file=sys.stderr)
@@ -74,6 +75,7 @@ def usage():
     print("                  pico      (32bit RISCV core)", file=sys.stderr)
     print("                  pico_het  (heterogeneous pico+sparc arrangement)", file=sys.stderr)
     print("                  ariane    (64bit RISCV core)", file=sys.stderr)
+    print("                  ara       (64bit RISCV vec core)", file=sys.stderr)
     print("\n       --network_config <network_config>", file=sys.stderr)
     print("              Name of the network type to be used:", file=sys.stderr)
     print("                  2dmesh_config (default)", file=sys.stderr)
@@ -141,6 +143,23 @@ def usage():
     print("              Number of jobs to use in Vivado implementation flow", file=sys.stderr)
     print("\n       --postroutephysopt", file=sys.stderr)
     print("              Use post-route physical optimisation in Vivado implementation flow (can improve timing, not recommended by default)", file=sys.stderr)
+    print("\n       --vc707chip", file=sys.stderr)
+    print("              Sets POLARA_VC707_CHIP rtl define used to recreate Polara chip on VC707 FPGA (False by default)", file=sys.stderr)
+    print("              Assumes vc707 board is chosen", file=sys.stderr)
+    print("\n       --vc707chipset", file=sys.stderr)
+    print("              Sets POLARA_VC707_CHIPSET rtl define used to recreate Polara chipset on VC707 FPGA (False by default)", file=sys.stderr)
+    print("              Assumes vc707 board is chosen", file=sys.stderr)
+    print("\n       --gen2chipset", file=sys.stderr)
+    print("              Sets POLARA_GEN2_CHIPSET define. Necessary with --se to create the Polara chipset.", file=sys.stderr)
+    print("              Assumes genesys2 board is chosen", file=sys.stderr)
+    print("\n       --se", file=sys.stderr)
+    print("              Sets POLARA_GEN2_CHIPSETSE define.", file=sys.stderr)
+    print("              Assumes genesys2 board is chosen", file=sys.stderr)
+    print("\n       --nocpowertest", file=sys.stderr)
+    print("              Sets PITON_NOC_POWER_CHIPSET_TEST define.", file=sys.stderr)
+    print("\n       --poloopback", file=sys.stderr)
+    print("              Sets POLARA_LOOPBACK define.", file=sys.stderr)
+    print("              To generate packets to test Polara's NOC.", file=sys.stderr)
     print("\n       -h, --help", file=sys.stderr)
     print("              Display this help message and exit", file=sys.stderr)
     print("\n", file=sys.stderr)
@@ -331,11 +350,23 @@ def runImplFlow(board, design_data, work_dir, log_dir, def_list, slurm, dep_list
     #os.chdir(dname)
     print_info("Running FPGA implementation down to bitstream generation")
     design_board_dir = os.path.join(design_data["PATH"], board)
+    # Debugging (RR 2024/05)
+    print("design_board_dir is: ", design_board_dir)
     impl_log = os.path.join(log_dir, PROJECT_IMPL_LOG)
+    print("impl_log is: ", impl_log)
     impl_flow = os.path.join(DV_ROOT, "tools/src/proto/" + tool + "/impl_flow.tcl")
+    print("impl_flow is: ", impl_flow)
     jname = "protosyn_impl_%s_%s" % (board, design_data["ID"])
+    print("jname is: ", jname)
     jid = None
     if (tool == "vivado"):
+        print("run_vivado called with: ")
+        print("impl_log, impl_flow")
+        print("design_data[PATH] is: ", design_data["PATH"])
+        print("board is: ", board)
+        print("slurm is: ", slurm)
+        print("jname")
+        print("dep_list is: ", dep_list)
         jid = run_vivado(impl_log, impl_flow, design_data["PATH"], board, \
                          slurm, 8, 64000, "6:00:00", jname, dep_list)
     elif (tool == "ise"):
@@ -480,6 +511,12 @@ def setParserOptions(parser):
     parser.add_option("--axi4_mem", dest="axi4_mem", action="store_true", default=False)
     parser.add_option("--zeroer_off", dest="zeroer_off", action="store_true", default=False)
     parser.add_option("--postroutephysopt", dest="postroutephysopt", action="store_true", default=False)
+    parser.add_option("--vc707chip", dest="polara_vc707_chip_flag", action="store_true", default=False)
+    parser.add_option("--vc707chipset", dest="polara_vc707_chipset_flag", action="store_true", default=False)
+    parser.add_option("--gen2chipset", dest="gen2_chipset", action="store_true", default=False)
+    parser.add_option("--se", dest="se", action="store_true", default=False)
+    parser.add_option("--nocpowertest", dest="noctest", action="store_true", default=False)
+    parser.add_option("--poloopback", dest="poloopback", action="store_true", default=False)
 
     return parser
 
@@ -490,11 +527,14 @@ def makeDefList(options):
     #defines.append(df)
 
     # disable CSM in this case
-    if options.core == 'ariane':
+    if (options.core == 'ariane') or (options.core == 'ara'):
         defines.append("NO_RTL_CSM")
 
     if (options.board == "f1"):
         print_info("design option is ignored for f1")
+
+    if (options.board == "alveou280"):
+        defines.append("PITON_ALVEO")
 
     # --no-ddr option
     if (options.no_ddr == True) or (options.board == "piton_board"):
@@ -514,7 +554,9 @@ def makeDefList(options):
         defines.append("PITONSYS_MEM_ZEROER")    
 
     # do not use SD controller if BRAM is used for boot or a test or if board doesn't have sd
-    if (options.test_name != None) or (options.board in {"piton_board", 'xupp3r', "f1"}):
+    # do not use SD controller if using UART boot with genesys2 board
+    # do not use SD controller if targetting chip to vc707 board
+    if (options.test_name != None) or (options.board in {"piton_board", "xupp3r", "f1", "alveou280"}) or ((options.board == "genesys2") and (options.uart_dmw == "ddr")) or ((options.design == "chip") and (options.board == "vc707")):
         pass
     else:   # default option
         defines.append("PITON_FPGA_SD_BOOT")
@@ -540,6 +582,9 @@ def makeDefList(options):
 
     # --chip-bridge option
     if (options.board == "piton_board") and (options.design == "chipset"):
+        pass
+    # VC707 chip emulation needs the chip bridge
+    elif (options.design == "chip") and (options.board == "vc707"):
         pass
     # chip-bridge is used for chipset by default
     elif options.chip_bridge == False and options.design != "chipset":
@@ -572,6 +617,9 @@ def makeDefList(options):
     if options.design == "chipset":
         if options.board == "piton_board":
             defines.append("PITON_BOARD_CHIPSET")
+        # TEST for genesys2 chipset only synthesis
+        elif options.board == "genesys2":
+            defines.append("PITON_BOARD_CHIPSET")
         else:
             defines.append("PITON_ASIC_CHIPSET")
 
@@ -583,7 +631,9 @@ def makeDefList(options):
     if options.eth or options.design == "chipset" or options.design == "system":
         # Ethernet controller is supported on Genesys2 and nexysVideo
         if options.board == "genesys2" or options.board == "nexysVideo":
-            defines.append("PITON_FPGA_ETHERNETLITE")
+            # Don't want ethernet for the Polara chipset
+            if options.gen2_chipset == False:
+                defines.append("PITON_FPGA_ETHERNETLITE")
         else:
             print_info("--eth option is ignored for %s" % options.board)
 
@@ -604,7 +654,47 @@ def makeDefList(options):
             print_warning("--oled option is ignored for %s" % options.board)
     elif options.design == "chipset" and (options.board == "genesys2" or options.board == "nexysVideo"):
         disp_string = "Heeey!          I am a chipset  for (Open)Piton Enjoy debugging!"
+        #disp_string = "Hello"
         defines.append("{OLED_STRING=\\\"%s\\\"}" % disp_string)
+
+    # --vc707chip option
+    if options.polara_vc707_chip_flag == True:
+        # Set RTL define
+        defines.append("POLARA_VC707_CHIP")
+
+    # --vc707chipset option
+    if options.polara_vc707_chipset_flag == True:
+        # Set RTL define
+        defines.append("POLARA_VC707_CHIPSET")
+        # Set environnment variable
+        os.environ["POLARA_VC707_CHIPSET"]     = "1"
+        
+    # --gen2chipset option
+    if options.gen2_chipset == True:
+        # Set RTL define
+        defines.append("POLARA_GEN2_CHIPSET")
+        # Set environnment variable
+        os.environ["POLARA_GEN2_CHIPSET"]     = "1"
+        if options.se == True:
+            # Set RTL define
+            defines.append("POLARA_GEN2_CHIPSETSE")
+            # Set environnment variable
+            os.environ["POLARA_GEN2_CHIPSETSE"]     = "1"
+
+    # --nocpowertest option
+    if options.noctest == True:
+        # Set RTL define
+        defines.append("PITON_NOC_POWER_CHIPSET_TEST")
+        # Set environnment variable
+        os.environ["PITON_NOC_POWER_CHIPSET_TEST"] = "1"
+
+    # --poloopback option
+    if options.poloopback == True:
+        print("poloopback option chosen")
+        # Set RTL define
+        defines.append("POLARA_LOOPBACK")
+        # Set environnment variable
+        os.environ["POLARA_LOOPBACK"] = "1"
 
     return defines
 
@@ -772,6 +862,15 @@ def main():
             os.environ['RTL_SPARC' + str(i)] = "1"
             print_info('setenv RTL_SPARC' + str(i))
 
+    elif options.core == 'ara':
+        os.environ['PITON_ARA'] = "1"
+        os.environ['PITON_RV64_PLATFORM'] = "1"
+        os.environ['WT_DCACHE'] = "1"
+
+        for i in range(int(options.num_tiles)):
+            os.environ['RTL_ARA' + str(i)] = "1"
+            print_info('setenv RTL_ARA' + str(i))
+
     else:
         print_error("invalid core configuration " + str(options.core))
         sys.exit(1)
@@ -845,6 +944,9 @@ def main():
 
         if options.core == 'ariane':
             config += ' -ariane'
+    
+        if options.core == 'ara':
+            config += ' -ara'
 
         print_info("Synthesizing a test: %s" % options.test_name)
         print_info("Compilation started")

@@ -33,14 +33,16 @@ RISCV_LDFLAGS="-static -nostartfiles -lm -Wl,--gc-sections -T ${DV_ROOT}/verif/d
 #                          Build
 #----------------------------------------------------------
 RISCV_V_LLVM="${DV_ROOT}/design/chip/tile/ara/install/riscv-llvm/bin/clang"
+
 RISCV_LINK_OPTS="-nostdlib ${RISCV_LDFLAGS} ${LLVM_FLAGS} ${LLVM_V_FLAGS} -DDEFINE_MALLOC -DDEFINE_REALLOC -DDEFINE_FREE -Werror-implicit-function-declaration -fno-math-errno -Wl,-Map=diag.map"
 
 RISCV_V_LLVM_OPTS="-DPREALLOCATE=1 -mcmodel=medany -std=gnu99 -O2 -fno-common -fno-builtin-printf $2  -DPITON_NUMTILES=${PITON_NUM_TILES}"
+
 INCS="-I${DV_ROOT}/verif/diag/assembly/include/riscv/ariane"
 ARA_INCS="-I${DV_ROOT}/design/chip/tile/ara/apps/riscv-tests/isa/macros/vector"
 
 
-${RISCV_V_LLVM} ${INCS} ${ARA_INCS} ${RISCV_V_LLVM_OPTS} -o diag.exe $1            \
+${RISCV_V_LLVM} ${INCS} ${ARA_INCS} ${RISCV_V_LLVM_OPTS} -o diag.exe $1      \
              ${DV_ROOT}/verif/diag/assembly/include/riscv/ariane/syscalls.c  \
              ${DV_ROOT}/verif/diag/assembly/include/riscv/ariane/crt.S       \
              ${RISCV_LINK_OPTS}

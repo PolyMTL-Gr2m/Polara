@@ -34,14 +34,17 @@ module chip(
    input                                        impsel2,
 `endif // endif PITON_CHIP_FPGA
 
-`ifdef PITON_FPGA_CLKS_GEN
+`ifdef POLARA_VC707_CHIP
+   input                                        core_ref_clk,
+   input                                        io_clk,
+`elsif PITON_FPGA_CLKS_GEN
    input                                        clk_osc_p,
    input                                        clk_osc_n,
 `else // ifndef PITON_FPGA_CLKS_GEN
    // Input clocks
    input                                        core_ref_clk,
    input                                        io_clk,
-`endif // endif PITON_FPGA_CLKS_GEN
+`endif // endif POLARA_VC707_CHIP, PITON_FPGA_CLKS_GEN
 
    // Resets
    // reset is assumed to be asynchronous
@@ -83,14 +86,27 @@ module chip(
    output                                       piton_prsnt_n,
    output                                       piton_ready_n,
 
+   // No need for the vc707 chip that works with the genesys2 chipset (Polara project)
+`ifndef POLARA_VC707_CHIP
    input                                        chipset_prsnt_n,
+`endif // endif POLARA_VC707_CHIP
 
    output [7:0]                                 leds,
+   
 `endif // endif PITON_CHIP_FPGA
 
 `ifndef PITON_NO_CHIP_BRIDGE
    // For FPGA implementations, we convert to differential and source synchronous
-`ifdef PITON_CHIP_FPGA
+`ifdef POLARA_VC707_CHIP
+   // Virtual channel credit-based off-chip interface
+   input  [31:0]                                intf_chip_data,
+   input  [1:0]                                 intf_chip_channel,
+   output [2:0]                                 intf_chip_credit_back,
+
+   output [31:0]                                chip_intf_data,
+   output [1:0]                                 chip_intf_channel,
+   input  [2:0]                                 chip_intf_credit_back
+`elsif PITON_CHIP_FPGA
    output                                      chip_intf_clk_p,
    output                                      chip_intf_clk_n,
    input                                       intf_chip_clk_p,
@@ -118,7 +134,7 @@ module chip(
    output [31:0]                                chip_intf_data,
    output [1:0]                                 chip_intf_channel,
    input  [2:0]                                 chip_intf_credit_back
-`endif // endif PITON_CHIP_FPGA
+`endif // endif POLARA_VC707_CHIP, PITON_CHIP_FPGA
 `else // ifdef PITON_NO_CHIP_BRIDGE
    output                                       processor_offchip_noc1_valid,
    output [`NOC_DATA_WIDTH-1:0]                 processor_offchip_noc1_data,
@@ -185,6 +201,7 @@ module chip(
    wire                                         oram_dummy_gen;
 `endif // endif PITON_CHIP_FPGA
    // Same for generating clocks
+`ifndef POLARA_VC707_CHIP
 `ifdef PITON_FPGA_CLKS_GEN
    wire                                         core_ref_clk;
 
@@ -204,6 +221,7 @@ module chip(
    wire [2:0]                                   chip_intf_credit_back;
 `endif // endif PITON_CHIP_FPGA
 `endif // endif PITON_NO_CHIP_BRIDGE
+`endif // endif POLARA_VC707_CHIP
 
    // OCI internal wires
 
@@ -351,6 +369,9 @@ module chip(
    wire [`PITON_NUM_TILES*2-1:0]            irq;          // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+
+   reg [`PITON_NUM_TILES-1:0] timer_irq_reg_i;
+   reg [`PITON_NUM_TILES*2-1:0] irq_reg_i; 
 
    // Tiles JTAG interface
    wire                                         jtag_tiles_ucb_val;
@@ -538,7 +559,9 @@ module chip(
    assign piton_ready_n = ~rst_n_inter_sync;
 
 `ifdef PITON_FPGA_CLKS_GEN
+`ifndef POLARA_VC707_CHIP
    assign leds[0] = mmcm_locked;
+`endif // endif POLARA_VC707_CHIP
 `else // ifndef PITON_FPGA_CLKS_GEN
    assign leds[0] = 1'b1;
 `endif // endif PITON_FPGA_CLKS_GEN
@@ -667,6 +690,7 @@ module chip(
    /////////////////////////
 
    // Need to generate clocks from MMCM for standalone chip FPGA synthesis
+`ifndef POLARA_VC707_CHIP
 `ifdef PITON_FPGA_CLKS_GEN
    // Generate core_ref_clk
    clk_mmcm_chip clk_mmcm (
@@ -679,7 +703,9 @@ module chip(
       .core_ref_clk(core_ref_clk)
    );
 `endif // endif PITON_FPGA_CLKS_GEN
+`endif // endif POLARA_VC707_CHIP
 
+`ifndef POLARA_VC707_CHIP
 `ifndef PITON_NO_CHIP_BRIDGE
 `ifdef PITON_CHIP_FPGA
    // Generate io_clk from input
@@ -728,6 +754,7 @@ module chip(
    );
 `endif // endif PITON_CHIP_FPGA
 `endif // endif PITON_NO_CHIP_BRIDGE
+`endif // endif POLARA_VC707_CHIP
 
    // Off-Chip Interface Block
    // Removed, the top level I/Os are in the backend dir
@@ -1084,11 +1111,11 @@ module chip(
         ,.unavailable_o       ( unavailable[_FLAT_ID_] )
     `endif // ifdef PITON_RV64_DEBUGUNIT
     `ifdef PITON_RV64_CLINT
-        ,.timer_irq_i         ( timer_irq[_FLAT_ID_]   )
+        ,.timer_irq_i         ( timer_irq_reg_i[_FLAT_ID_]   )
         ,.ipi_i               ( ipi[_FLAT_ID_]         )
     `endif // ifdef PITON_RV64_CLINT
     `ifdef PITON_RV64_PLIC
-        ,.irq_i               ( irq[_FLAT_ID_*2 +: 2]  )
+        ,.irq_i               ( irq_reg_i[_FLAT_ID_*2 +: 2]  )
     `endif // ifdef PITON_RV64_PLIC
     `endif // ifdef PITON_RV64_PLATFORM
         ,
@@ -1278,11 +1305,16 @@ pmesh_rvic pmesh_rvic (
     .unavailable_i              ( unavailable        ),
     .tck_i                      ( jtag_clk_inter     ),             
     .tms_i                      ( jtag_modesel_inter   ),             
-    .trst_ni                    ( jtag_rst_l_inter_sync ),                
+    .trst_ni                    ( jtag_rst_l_inter_sync ),
     .td_i                       ( jtag_datain_inter  ),             
     .td_o                       ( jtag_dataout_inter ),             
     .tdo_oe_o                   (                    ) // not used               
 );
+
+always @(posedge clk_muxed) begin
+   timer_irq_reg_i <= timer_irq;
+   irq_reg_i <= irq;
+end
 
 endmodule
 
